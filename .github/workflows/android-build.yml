@@ -31,7 +31,28 @@ jobs:
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
             echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
           else
-            echo "Warning: GOOGLE_SERVICES_JSON secret not set - build may fail"
+            # Placeholder for CI — satisfies Google Services plugin (no real FCM credentials)
+            cat > app/google-services.json << 'EOF'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "firebase_url": "https://inkwell-ci-placeholder.firebaseio.com",
+              "project_id": "inkwell-ci-placeholder",
+              "storage_bucket": "inkwell-ci-placeholder.appspot.com"
+            },
+            "client": [{
+              "client_info": {
+                "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+                "android_client_info": { "package_name": "com.obsidiancapture" }
+              },
+              "oauth_client": [],
+              "api_key": [{ "current_key": "CI_PLACEHOLDER_NOT_REAL" }],
+              "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+            }],
+            "configuration_version": "1"
+          }
+          EOF
+            echo "Using CI placeholder google-services.json (no real Firebase credentials)"
           fi
 
       - name: Build debug APK
