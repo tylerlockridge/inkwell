@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Inkwell</string>
+    <string name="nav_capture">Capture</string>
+    <string name="nav_inbox">Inbox</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- App shortcuts -->
+    <string name="shortcut_capture_short">Capture</string>
+    <string name="shortcut_capture_long">Quick Capture</string>
+    <string name="shortcut_inbox_short">Inbox</string>
+    <string name="shortcut_inbox_long">Open Inbox</string>
+
+    <!-- Biometric auth -->
+    <string name="biometric_prompt_title">Unlock Inkwell</string>
+    <string name="biometric_prompt_subtitle">Authenticate to access your notes</string>
+
+    <!-- Sync notifications -->
+    <string name="notification_auth_expired_title">Inkwell: Session expired</string>
+    <string name="notification_auth_expired_text">Open the app and sign in again to resume sync</string>
+
+    <!-- Widgets -->
+    <string name="widget_inbox_count_name">Inbox Count</string>
+    <string name="widget_inbox_count_desc">Shows open notes and pending sync count</string>
+    <string name="widget_quick_capture_name">Quick Capture</string>
+    <string name="widget_quick_capture_desc">Quick capture button with inbox badge</string>
+</resources>

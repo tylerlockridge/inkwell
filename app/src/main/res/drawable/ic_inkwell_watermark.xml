@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Inkwell brand mark — ink drop silhouette used as ghost watermark on writing surface.
+     Rendered in Compose with alpha=0.04f and tinted to colorScheme.onSurface. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+
+    <!-- Ink drop: pointed tip at top, spherical base. Classic writing-ink symbol. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,8 C50,8 16,40 16,62 C16,78 31.5,92 50,92 C68.5,92 84,78 84,62 C84,40 50,8 50,8 Z" />
+
+</vector>

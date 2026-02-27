@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Inkwell app icon — polished amber ink drop, single upper-right light source.
+     Layers: base fill → left shadow → right warm highlight → specular → tip glow. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- ── Drop shadow (depth beneath the drop) ── -->
+    <path
+        android:fillColor="#44000000"
+        android:pathData="M38,88 Q54,95 70,88 Q63,96 54,96 Q45,96 38,88 Z" />
+
+    <!-- ── Layer 1: Full silhouette — mid amber base ── -->
+    <path
+        android:fillColor="#C8954A"
+        android:pathData="M54,22 C54,22 26,48 26,66 C26,80 38.5,90 54,90 C69.5,90 82,80 82,66 C82,48 54,22 54,22 Z" />
+
+    <!-- ── Layer 2: Left shadow half — deep amber at 50% alpha ── -->
+    <path
+        android:fillColor="#5C2E08"
+        android:alpha="0.50"
+        android:pathData="M54,22 C54,22 26,48 26,66 C26,80 38.5,90 54,90 L54,22 Z" />
+
+    <!-- ── Layer 3: Right warm highlight — light amber at 35% alpha ── -->
+    <path
+        android:fillColor="#DCA055"
+        android:alpha="0.35"
+        android:pathData="M54,90 C69.5,90 82,80 82,66 C82,48 54,22 54,22 L54,90 Z" />
+
+    <!-- ── Layer 4: Right rim edge — bright narrow strip catching direct light ── -->
+    <path
+        android:fillColor="#EEC880"
+        android:alpha="0.55"
+        android:pathData="M82,66 C82,48 54,22 54,22 C55,24 80,48 80,66 C80,79 68,89 54,90 C55,91 70,90 82,80 Z" />
+
+    <!-- ── Layer 5: Shoulder rim highlight — bright line at widest point ── -->
+    <path
+        android:fillColor="#EEC880"
+        android:alpha="0.70"
+        android:pathData="M26,65 L82,65 L82,68 L26,68 Z" />
+
+    <!-- ── Layer 6: Main specular — large warm-cream oval upper-right ── -->
+    <path
+        android:fillColor="#F5E0A8"
+        android:alpha="0.78"
+        android:pathData="M60,36 C66,40 68,52 63,60 C60,64 54,58 52,50 C50,42 53,32 60,36 Z" />
+
+    <!-- ── Layer 7: Secondary specular — tight bright centre of highlight ── -->
+    <path
+        android:fillColor="#FFFBF0"
+        android:alpha="0.88"
+        android:pathData="M63,40 C67,42 68,48 65,52 C63,55 60,52 59,48 C58,44 59,38 63,40 Z" />
+
+    <!-- ── Layer 8: Tip glow — warm amber at the pointed apex ── -->
+    <path
+        android:fillColor="#E8B060"
+        android:alpha="0.45"
+        android:pathData="M54,22 C55,28 57,36 55,42 C53,48 52,42 52,36 C51,28 53,23 54,22 Z" />
+
+</vector>

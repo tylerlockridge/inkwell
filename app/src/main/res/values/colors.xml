@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fallback colors for pre-API 31 — matches custom dark amber/charcoal palette -->
+    <color name="md_theme_primary">#C8954A</color>
+    <color name="md_theme_on_primary">#1A1000</color>
+    <color name="md_theme_primary_container">#3A2800</color>
+    <color name="md_theme_surface">#191710</color>
+    <color name="md_theme_surface_dark">#111009</color>
+    <color name="ic_launcher_background">#191710</color>
+</resources>
