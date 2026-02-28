@@ -19,10 +19,10 @@ Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcea
 <!-- QUICK-RESUME-UPDATED: 2026-02-27 -->
 ## Quick Resume
 **Last Active:** 2026-02-27
-**Current Phase:** Post-separation cleanup — code quality pass complete
-**Current Task:** All audit findings addressed + SettingsScreenTest added
+**Current Phase:** Post-separation cleanup — complete
+**Current Task:** All complete — 17/17 instrumented tests passing, 27/27 unit tests passing
 **Blockers:** None
-**Next Action:** Run instrumented tests on a connected device/emulator (`./gradlew connectedDebugAndroidTest`). All 4 instrumented test classes ready (HiltTestRunner + CaptureScreenTest + InboxScreenTest + SettingsScreenTest). Lint requires network for first-time jar download (hamcrest/javawriter — pre-existing).
+**Next Action:** Feature work or release prep. Project is in a clean, committed state (commit `728b240`).
 
 ### Session 2026-02-27 — Audit Remediation
 - ✅ Build verified (debug APK builds successfully with JDK 21 from Android Studio)
@@ -36,6 +36,16 @@ Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcea
   - Added `hilt-android-testing`, `androidx.test:runner` deps + `kspAndroidTest`
   - Fixed: Hilt testing package is `dagger.hilt.*` not `com.google.dagger.hilt.*`
 - Build system note: requires JDK 11+; use Android Studio JBR at `/c/Program Files/Android/Android Studio/jbr`
+
+### Session 2026-02-27 (continued, round 3) — Instrumented Tests Passing
+- ✅ 17/17 instrumented tests passing on Pixel 10 Pro XL (Android 16 / API 36)
+- ✅ Android 16 compatibility: `espresso-core:3.7.0` + `runner:1.7.0` (fixes `InputManager.getInstance` removal)
+- ✅ WorkManager in tests: `callApplicationOnCreate` override in `HiltTestRunner` initializes WM before Hilt injection
+- ✅ `FocusRequester` race: guarded `requestFocus()` with try/catch in `CaptureScreen`
+- ✅ Nav semantics fix: M3 `NavigationBarItem` icon contentDescription not in merged tree → use `onNodeWithText + useUnmergedTree=true`
+- ✅ Title ambiguity: nav label + screen title both match → use `onAllNodesWithText(...)[0]`
+- ✅ Scroll fix: `performScrollTo()` for below-fold elements (Haptic Feedback toggle)
+- Committed: `728b240`
 
 ### Session 2026-02-27 (continued, round 2)
 - ✅ `SettingsScreenTest.kt` added — 6 Compose UI tests for Settings screen (title, system health card, server connection section, sync now button, push notifications toggle, haptic feedback toggle)
