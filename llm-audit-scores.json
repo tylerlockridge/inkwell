@@ -1,0 +1,28 @@
+{
+  "date": "2026-02-28",
+  "provider": "combined",
+  "providers": {
+    "codex": {
+      "overall": 6,
+      "scores": { "architecture": 7, "codeQuality": 6, "testing": 5, "security": 7, "performance": 6, "documentation": 4 }
+    },
+    "gemini": {
+      "overall": 6,
+      "scores": { "architecture": 8, "codeQuality": 6, "testing": 4, "security": 5, "performance": 7, "documentation": 4 }
+    },
+    "monica": {
+      "overall": 5,
+      "scores": { "architecture": 7, "codeQuality": 5, "testing": 4, "security": 2, "performance": 6, "documentation": 3 }
+    }
+  },
+  "scores": {
+    "architecture": 7,
+    "codeQuality": 6,
+    "testing": 4,
+    "security": 5,
+    "performance": 6,
+    "documentation": 4
+  },
+  "overall": 5,
+  "weightedOverall": 5.4
+}

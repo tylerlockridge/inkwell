@@ -78,6 +78,7 @@ class UploadWorker @AssistedInject constructor(
                 Log.w(TAG, "Upload failed for ${note.uid}: server error ${e.response.status.value}")
                 retryableFailures++
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 // Network or other transient error
                 Log.w(TAG, "Upload failed for ${note.uid}: ${e.message}")
                 retryableFailures++

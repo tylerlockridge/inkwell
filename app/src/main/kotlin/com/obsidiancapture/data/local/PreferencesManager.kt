@@ -11,7 +11,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import com.obsidiancapture.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -77,8 +76,7 @@ class PreferencesManager @Inject constructor(
             context.dataStore.edit { prefs -> prefs.remove(authTokenKey) }
         }
         val stored = encryptedPrefs.getString(ENCRYPTED_AUTH_TOKEN_KEY, "") ?: ""
-        // Fall back to baked-in token for fresh installs
-        emit(stored.ifBlank { BuildConfig.DEFAULT_AUTH_TOKEN })
+        emit(stored)
     }
 
     val syncIntervalMinutes: Flow<Long> = context.dataStore.data.map { prefs ->

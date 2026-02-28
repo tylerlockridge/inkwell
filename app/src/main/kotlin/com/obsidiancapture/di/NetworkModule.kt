@@ -61,9 +61,11 @@ object NetworkModule {
                         val token = preferencesManager.authToken.first()
                         if (token.isNotBlank()) BearerTokens(token, "") else null
                     }
-                    sendWithoutRequest { request ->
-                        request.url.host != "localhost"
-                    }
+                    // sendWithoutRequest deliberately omitted: without it, Ktor only
+                    // sends the bearer token after a 401 challenge from the server.
+                    // This prevents proactive token transmission to unintended hosts
+                    // (e.g., third-party URLs, FCM, image CDNs) at the cost of one
+                    // extra round-trip on the first request to each endpoint.
                 }
             }
         }

@@ -94,6 +94,7 @@ class CaptureRepository @Inject constructor(
             updateWidgets()
             CaptureResult.Online(response)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.i("CaptureRepository", "Network unavailable, saving offline: ${e.javaClass.simpleName}")
             saveOffline(request, clientUuid, now)
         }
@@ -144,6 +145,7 @@ class CaptureRepository @Inject constructor(
         return try {
             apiService.getCaptureDefaults(serverUrl)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.w("CaptureRepository", "Failed to fetch capture defaults", e)
             null
         }
@@ -155,6 +157,7 @@ class CaptureRepository @Inject constructor(
         return try {
             apiService.getSystemStatus(serverUrl)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.w("CaptureRepository", "Failed to fetch system status", e)
             null
         }
@@ -166,6 +169,7 @@ class CaptureRepository @Inject constructor(
         return try {
             apiService.getSyncthingStatus(serverUrl)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.w("CaptureRepository", "Failed to fetch Syncthing status", e)
             null
         }
@@ -177,6 +181,7 @@ class CaptureRepository @Inject constructor(
         return try {
             apiService.restartSyncthing(serverUrl)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.w("CaptureRepository", "Failed to restart Syncthing", e)
             null
         }

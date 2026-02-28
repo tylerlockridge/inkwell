@@ -16,13 +16,23 @@ ralphRuns: 0
 Android app for capturing notes/tasks directly to an Obsidian vault inbox via a REST API.
 Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcean droplet.
 
-<!-- QUICK-RESUME-UPDATED: 2026-02-27 -->
+<!-- QUICK-RESUME-UPDATED: 2026-02-28 -->
 ## Quick Resume
-**Last Active:** 2026-02-27
-**Current Phase:** Post-separation cleanup — complete
-**Current Task:** All complete — 17/17 instrumented tests passing, 27/27 unit tests passing
+**Last Active:** 2026-02-28
+**Current Phase:** Post-audit remediation — complete
+**Current Task:** All complete — quality gates pass (test + lint), audit fixes committed
 **Blockers:** None
-**Next Action:** Feature work or release prep. Project is in a clean, committed state (commit `728b240`).
+**Next Action:** Feature work or release prep. Project is in a clean, committed state post-audit.
+
+### Audit 2026-02-28 — LLM Pipeline (Codex + Gemini + Monica)
+Weighted scores: Architecture 7, Code Quality 6, Testing 4, Security 5, Performance 6, Documentation 4 → **5.4/10**
+- 3-provider pipeline: OpenAI Codex (full repo, 1.5×), Gemini 3 Pro, GPT-5.2 via Monica
+- Reports: `llm-audit-report-2026-02-28.md`, `llm-audit-action-plan.md`, `llm-audit-scores.json`
+- **Fixed (top 3):**
+  1. ✅ `catch(e: Exception)` swallowing `CancellationException` — fixed in CaptureRepository, InboxRepository, UploadWorker (10 sites)
+  2. ✅ Bearer token proactive transmission (`sendWithoutRequest`) removed from NetworkModule — Ktor now only sends token after 401 challenge
+  3. ✅ `BuildConfig.DEFAULT_AUTH_TOKEN` baked into APK removed — token is runtime-only (EncryptedSharedPreferences)
+- Quality gates: `./gradlew test` ✅ (all unit tests pass), `./gradlew lint` ✅
 
 ### Session 2026-02-27 — Audit Remediation
 - ✅ Build verified (debug APK builds successfully with JDK 21 from Android Studio)

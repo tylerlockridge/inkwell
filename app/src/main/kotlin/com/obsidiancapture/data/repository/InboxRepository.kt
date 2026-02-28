@@ -85,6 +85,7 @@ class InboxRepository @Inject constructor(
                     noteDao.upsert(serverNote)
                     syncedCount++
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     android.util.Log.w("InboxRepository", "Skipping note ${item.uid}: ${e.javaClass.simpleName}: ${e.message}", e)
                 }
             }
@@ -94,6 +95,7 @@ class InboxRepository @Inject constructor(
 
             SyncResult.Success(syncedCount)
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.w("InboxRepository", "Inbox sync failed", e)
             SyncResult.Error("Sync failed: ${e.javaClass.simpleName}: ${e.message}")
         }
@@ -114,6 +116,7 @@ class InboxRepository @Inject constructor(
             noteDao.markSynced(uid, now)
             true
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.w("InboxRepository", "Status update failed for $uid, queued for retry: ${e.javaClass.simpleName}", e)
             // Already marked pendingSync, upload worker will retry
             syncScheduler.triggerImmediateUpload()
@@ -145,6 +148,7 @@ class InboxRepository @Inject constructor(
             noteDao.markSynced(uid, now)
             true
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.w("InboxRepository", "Content update failed for $uid, queued for retry: ${e.javaClass.simpleName}", e)
             syncScheduler.triggerImmediateUpload()
             true

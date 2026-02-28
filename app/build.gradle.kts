@@ -28,10 +28,8 @@ android {
 
         testInstrumentationRunner = "com.obsidiancapture.HiltTestRunner"
 
-        val defaultAuthToken = System.getenv("CAPTURE_AUTH_TOKEN")
-            ?: localProps.getProperty("CAPTURE_AUTH_TOKEN")
-            ?: ""
-        buildConfigField("String", "DEFAULT_AUTH_TOKEN", "\"$defaultAuthToken\"")
+        // DEFAULT_AUTH_TOKEN removed — baking tokens into the APK is a security risk.
+        // Auth token is configured by the user at runtime via Settings → Sign In.
     }
 
     signingConfigs {
