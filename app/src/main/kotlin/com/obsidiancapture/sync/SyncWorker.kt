@@ -20,6 +20,9 @@ import com.obsidiancapture.widget.WidgetStateUpdater
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import io.ktor.client.plugins.ClientRequestException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 
 /**
@@ -44,51 +47,53 @@ class SyncWorker @AssistedInject constructor(
             val response = apiService.getInbox(serverUrl)
             val now = java.time.Instant.now().toString()
 
-            var successCount = 0
-            var failCount = 0
-
-            for (item in response.items) {
-                try {
-                    val localNote = noteDao.getByUid(item.uid)
-
-                    // Skip if local note has pending changes — upload worker handles those
-                    if (localNote?.pendingSync == true) continue
-
-                    // Skip if local version is same or newer (last-write-wins)
-                    if (localNote != null && localNote.updated >= item.updated_at) continue
-
-                    // Fetch full detail from server
-                    val detail = apiService.getNote(serverUrl, item.uid)
-
-                    val serverNote = NoteEntity(
-                        uid = detail.uid,
-                        title = detail.frontmatter.title ?: "",
-                        body = detail.body,
-                        kind = detail.frontmatter.kind,
-                        status = detail.frontmatter.status,
-                        tags = NoteEntity.tagsToJson(detail.frontmatter.tags),
-                        priority = detail.frontmatter.priority,
-                        calendar = detail.frontmatter.calendar,
-                        date = detail.frontmatter.date,
-                        startTime = detail.frontmatter.startTime,
-                        endTime = detail.frontmatter.endTime,
-                        source = detail.frontmatter.source ?: "web",
-                        gcalEnabled = detail.gcalStatus != null,
-                        gcalEventId = detail.gcalStatus?.eventId,
-                        gcalLastPushedAt = detail.gcalStatus?.lastPushedAt,
-                        created = detail.frontmatter.created,
-                        updated = detail.frontmatter.updated,
-                        syncedAt = now,
-                        pendingSync = false,
-                    )
-
-                    noteDao.upsert(serverNote)
-                    successCount++
-                } catch (e: Exception) {
-                    failCount++
-                    Log.w(TAG, "Failed to sync note ${item.uid}: ${e.message}")
-                }
+            // 1. Identify stale items via serial DB reads (fast, local)
+            val staleItems = response.items.filter { item ->
+                val localNote = noteDao.getByUid(item.uid)
+                localNote?.pendingSync != true &&
+                    (localNote == null || localNote.updated < item.updated_at)
             }
+
+            // 2. Fetch full detail for all stale items concurrently
+            val fetchResults: List<NoteEntity?> = coroutineScope {
+                staleItems.map { item ->
+                    async {
+                        try {
+                            val detail = apiService.getNote(serverUrl, item.uid)
+                            NoteEntity(
+                                uid = detail.uid,
+                                title = detail.frontmatter.title ?: "",
+                                body = detail.body,
+                                kind = detail.frontmatter.kind,
+                                status = detail.frontmatter.status,
+                                tags = NoteEntity.tagsToJson(detail.frontmatter.tags),
+                                priority = detail.frontmatter.priority,
+                                calendar = detail.frontmatter.calendar,
+                                date = detail.frontmatter.date,
+                                startTime = detail.frontmatter.startTime,
+                                endTime = detail.frontmatter.endTime,
+                                source = detail.frontmatter.source ?: "web",
+                                gcalEnabled = detail.gcalStatus != null,
+                                gcalEventId = detail.gcalStatus?.eventId,
+                                gcalLastPushedAt = detail.gcalStatus?.lastPushedAt,
+                                created = detail.frontmatter.created,
+                                updated = detail.frontmatter.updated,
+                                syncedAt = now,
+                                pendingSync = false,
+                            )
+                        } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
+                            Log.w(TAG, "Failed to sync note ${item.uid}: ${e.message}")
+                            null
+                        }
+                    }
+                }.awaitAll()
+            }
+
+            // 3. Upsert successful fetches (serial, DB writes)
+            val successCount = fetchResults.count { it != null }
+            val failCount = fetchResults.count { it == null }
+            fetchResults.filterNotNull().forEach { noteDao.upsert(it) }
 
             if (failCount > 0) {
                 Log.w(TAG, "Sync completed with errors: $successCount ok, $failCount failed")

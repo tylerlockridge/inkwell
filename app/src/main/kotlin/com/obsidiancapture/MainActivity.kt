@@ -4,16 +4,15 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.fragment.app.FragmentActivity
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.obsidiancapture.auth.BiometricAuthManager
 import com.obsidiancapture.data.local.PreferencesManager
-import com.obsidiancapture.data.repository.InboxRepository
 import com.obsidiancapture.share.ShareIntentParser
 import com.obsidiancapture.ui.auth.LockScreen
 import com.obsidiancapture.ui.navigation.CaptureNavHost
@@ -30,11 +29,8 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var preferencesManager: PreferencesManager
 
-    @Inject
-    lateinit var inboxRepository: InboxRepository
-
+    private val viewModel: MainViewModel by viewModels()
     private val biometricAuthManager = BiometricAuthManager()
-    private var isLocked by mutableStateOf(false)
     private var lastPausedAt: Long = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,7 +42,7 @@ class MainActivity : FragmentActivity() {
             if (biometricEnabled) {
                 val capability = biometricAuthManager.checkCapability(this@MainActivity)
                 if (capability == BiometricAuthManager.Capability.AVAILABLE) {
-                    isLocked = true
+                    viewModel.lock()
                 }
             }
         }
@@ -54,7 +50,7 @@ class MainActivity : FragmentActivity() {
         // Sync inbox on every app open regardless of which tab is active
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                inboxRepository.syncInbox()
+                viewModel.triggerStartupSync()
             }
         }
 
@@ -83,7 +79,7 @@ class MainActivity : FragmentActivity() {
                     if (biometricEnabled) {
                         val capability = biometricAuthManager.checkCapability(this@MainActivity)
                         if (capability == BiometricAuthManager.Capability.AVAILABLE) {
-                            isLocked = true
+                            viewModel.lock()
                         }
                     }
                 }
@@ -97,13 +93,14 @@ class MainActivity : FragmentActivity() {
 
         setContent {
             CaptureTheme {
+                val isLocked by viewModel.isLocked.collectAsStateWithLifecycle()
                 if (isLocked) {
                     LockScreen(
                         onUnlockClick = {
                             lifecycleScope.launch {
                                 val success = biometricAuthManager.authenticate(this@MainActivity)
                                 if (success) {
-                                    isLocked = false
+                                    viewModel.unlock()
                                 }
                             }
                         },
