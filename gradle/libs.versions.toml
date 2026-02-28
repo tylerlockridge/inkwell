@@ -83,6 +83,8 @@ compose-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 room-testing = { module = "androidx.room:room-testing", version.ref = "room" }
 coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 hilt-testing = { module = "com.google.dagger:hilt-android-testing", version.ref = "hilt" }
+androidx-test-runner = { module = "androidx.test:runner", version = "1.7.0" }
+espresso-core = { module = "androidx.test.espresso:espresso-core", version = "3.7.0" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

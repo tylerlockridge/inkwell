@@ -1,6 +1,7 @@
 package com.obsidiancapture.util
 
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -138,7 +139,7 @@ object MarkdownParser {
                         if (closeParen != -1) {
                             val linkText = text.substring(i + 1, closeBracket)
                             val url = text.substring(closeBracket + 2, closeParen)
-                            pushStringAnnotation(tag = "URL", annotation = url)
+                            pushLink(LinkAnnotation.Url(url))
                             withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) {
                                 append(linkText)
                             }

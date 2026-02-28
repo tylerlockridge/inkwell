@@ -26,7 +26,7 @@ android {
         versionCode = 9
         versionName = "2.1.2"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.obsidiancapture.HiltTestRunner"
 
         val defaultAuthToken = System.getenv("CAPTURE_AUTH_TOKEN")
             ?: localProps.getProperty("CAPTURE_AUTH_TOKEN")
@@ -169,5 +169,9 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
     androidTestImplementation(libs.compose.test.junit4)
+    androidTestImplementation(libs.hilt.testing)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.espresso.core)  // 3.6.2 fixes Android 16 InputManager.getInstance removal
+    kspAndroidTest(libs.hilt.compiler)
     debugImplementation(libs.compose.test.manifest)
 }

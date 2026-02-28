@@ -1,5 +1,6 @@
 package com.obsidiancapture
 
+import androidx.compose.ui.text.LinkAnnotation
 import com.obsidiancapture.util.MarkdownParser
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -79,9 +80,9 @@ class MarkdownParserTest {
     @Test
     fun `link has URL annotation`() {
         val result = MarkdownParser.parse("[link](https://example.com)")
-        val annotations = result.getStringAnnotations("URL", 0, result.text.length)
+        val annotations = result.getLinkAnnotations(0, result.text.length)
         assertEquals(1, annotations.size)
-        assertEquals("https://example.com", annotations[0].item)
+        assertEquals("https://example.com", (annotations[0].item as LinkAnnotation.Url).url)
     }
 
     @Test
