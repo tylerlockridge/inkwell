@@ -40,7 +40,7 @@ class UploadWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         val serverUrl = preferencesManager.serverUrl.first()
-        if (serverUrl.isBlank()) return Result.retry()
+        if (serverUrl.isBlank()) return Result.success()
 
         val pendingNotes = noteDao.getPendingSync()
         if (pendingNotes.isEmpty()) return Result.success()
@@ -113,14 +113,17 @@ class UploadWorker @AssistedInject constructor(
         val response = apiService.capture(serverUrl, request)
         val now = java.time.Instant.now().toString()
 
-        // Replace pending note with server-assigned UID
-        noteDao.upsert(
-            note.copy(
+        // Atomically delete the pending_ row and insert the server-assigned row.
+        // A plain upsert would create a second row (different PK), leaving the old
+        // pending_ row to trigger duplicate uploads on every subsequent worker run.
+        noteDao.replacePendingWithServer(
+            pendingUid = note.uid,
+            serverNote = note.copy(
                 uid = response.uid,
                 pendingSync = false,
                 syncedAt = now,
                 syncError = null,
-            )
+            ),
         )
     }
 

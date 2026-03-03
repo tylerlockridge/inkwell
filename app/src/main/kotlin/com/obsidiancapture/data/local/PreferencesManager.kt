@@ -128,7 +128,13 @@ class PreferencesManager @Inject constructor(
     }
 
     suspend fun setAuthToken(token: String) {
-        encryptedPrefs.edit().putString(ENCRYPTED_AUTH_TOKEN_KEY, token).apply()
+        val edit = encryptedPrefs.edit()
+        if (token.isBlank()) {
+            edit.remove(ENCRYPTED_AUTH_TOKEN_KEY)
+        } else {
+            edit.putString(ENCRYPTED_AUTH_TOKEN_KEY, token)
+        }
+        edit.apply()
         // Ensure no plaintext copy remains in DataStore
         context.dataStore.edit { prefs -> prefs.remove(authTokenKey) }
     }

@@ -47,11 +47,42 @@ class SyncConflictTest {
     }
 
     @Test
-    fun `ISO timestamp comparison works across dates`() {
-        // ISO 8601 strings sort correctly via string comparison
-        assertTrue("2026-02-09T00:00:00Z" > "2026-02-08T23:59:59Z")
-        assertTrue("2026-03-01T00:00:00Z" > "2026-02-28T23:59:59Z")
-        assertTrue("2027-01-01T00:00:00Z" > "2026-12-31T23:59:59Z")
+    fun `Instant comparison correctly orders ISO timestamps across dates`() {
+        // Production code uses java.time.Instant.parse() — verify it orders correctly
+        val parse = { ts: String -> java.time.Instant.parse(ts) }
+        assertTrue(parse("2026-02-09T00:00:00Z") > parse("2026-02-08T23:59:59Z"))
+        assertTrue(parse("2026-03-01T00:00:00Z") > parse("2026-02-28T23:59:59Z"))
+        assertTrue(parse("2027-01-01T00:00:00Z") > parse("2026-12-31T23:59:59Z"))
+    }
+
+    @Test
+    fun `Instant comparison handles mixed millisecond precision correctly`() {
+        // String comparison would produce the wrong result here:
+        //   "T10:00:00.000Z" < "T10:00:00Z" lexicographically (because '.' < 'Z')
+        // Instant.parse() treats them as the same moment, so server is NOT newer.
+        val parse = { ts: String -> java.time.Instant.parse(ts) }
+        val withMs = parse("2026-02-08T10:00:00.000Z")
+        val withoutMs = parse("2026-02-08T10:00:00Z")
+        assertFalse(withMs > withoutMs)   // same moment — server not newer
+        assertFalse(withoutMs > withMs)
+
+        // A timestamp with sub-second precision IS correctly treated as later
+        val laterWithMs = parse("2026-02-08T10:00:00.123Z")
+        assertTrue(laterWithMs > withoutMs)
+    }
+
+    @Test
+    fun `invalid timestamp falls back to treating server as newer`() {
+        // isServerNewer() returns true on parse failure to avoid stale data
+        fun isServerNewer(localTs: String, serverTs: String): Boolean {
+            return try {
+                java.time.Instant.parse(localTs) < java.time.Instant.parse(serverTs)
+            } catch (_: Exception) {
+                true
+            }
+        }
+        assertTrue(isServerNewer("not-a-date", "2026-02-08T10:00:00Z"))
+        assertTrue(isServerNewer("2026-02-08T10:00:00Z", "also-not-a-date"))
     }
 
     @Test

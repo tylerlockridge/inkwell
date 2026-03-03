@@ -27,6 +27,8 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import com.obsidiancapture.BuildConfig
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -34,6 +36,7 @@ import javax.inject.Singleton
 class CaptureApiService @Inject constructor(
     private val httpClient: HttpClient,
     @UnauthenticatedClient private val unauthenticatedClient: HttpClient,
+    private val json: Json,
 ) {
     suspend fun capture(baseUrl: String, request: CaptureRequest): CaptureResponse {
         return httpClient.post("$baseUrl/api/capture") {
@@ -134,13 +137,15 @@ class CaptureApiService @Inject constructor(
                 setBody(GoogleAuthRequest(idToken))
             }
             val bodyText = httpResponse.bodyAsText()
-            android.util.Log.d("GoogleSignIn", "Exchange response ${httpResponse.status}: $bodyText")
+            // Only log in debug builds — response body contains the JWT token
+            if (BuildConfig.DEBUG) {
+                android.util.Log.d("GoogleSignIn", "Exchange response: ${httpResponse.status.value}")
+            }
 
             if (httpResponse.status.value !in 200..299) {
                 return Result.failure(Exception("Server error ${httpResponse.status}: $bodyText"))
             }
 
-            val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
             val response = json.decodeFromString<GoogleAuthResponse>(bodyText)
             Result.success(response.token)
         } catch (e: Exception) {

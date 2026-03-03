@@ -44,14 +44,16 @@ class SyncWorker @AssistedInject constructor(
         if (serverUrl.isBlank()) return Result.success()
 
         return try {
-            val response = apiService.getInbox(serverUrl)
+            val response = apiService.getInbox(serverUrl, limit = INBOX_FETCH_LIMIT)
             val now = java.time.Instant.now().toString()
 
-            // 1. Identify stale items via serial DB reads (fast, local)
+            // 1. Identify stale items — one bulk DB read instead of O(n) serial queries
+            val localNoteMap = noteDao.getAllByUids(response.items.map { it.uid })
+                .associateBy { it.uid }
             val staleItems = response.items.filter { item ->
-                val localNote = noteDao.getByUid(item.uid)
+                val localNote = localNoteMap[item.uid]
                 localNote?.pendingSync != true &&
-                    (localNote == null || localNote.updated < item.updated_at)
+                    (localNote == null || isServerNewer(localNote.updated, item.updated_at))
             }
 
             // 2. Fetch full detail for all stale items concurrently
@@ -164,8 +166,23 @@ class SyncWorker @AssistedInject constructor(
         }
     }
 
+    /**
+     * Returns true if the server timestamp is strictly newer than the local timestamp.
+     * Parses both as [java.time.Instant] to handle mixed-precision ISO 8601 strings
+     * (e.g. "2026-02-28T10:00:00Z" vs "2026-02-28T10:00:00.000Z") correctly.
+     * Falls back to treating the server as newer on any parse failure to avoid stale data.
+     */
+    private fun isServerNewer(localTs: String, serverTs: String): Boolean {
+        return try {
+            java.time.Instant.parse(localTs) < java.time.Instant.parse(serverTs)
+        } catch (_: Exception) {
+            true
+        }
+    }
+
     companion object {
         private const val TAG = "SyncWorker"
         private const val NOTIFICATION_ID_AUTH_EXPIRED = 1001
+        private const val INBOX_FETCH_LIMIT = 200
     }
 }

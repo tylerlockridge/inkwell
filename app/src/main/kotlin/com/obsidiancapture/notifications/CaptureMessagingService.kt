@@ -17,6 +17,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -199,8 +200,14 @@ class CaptureMessagingService : FirebaseMessagingService() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        serviceScope.cancel()
+    }
+
     companion object {
-        private const val CAPTURE_NOTIFICATION_ID = 1001
-        private const val SYNC_ERROR_NOTIFICATION_ID = 1002
+        // 2xxx range to avoid collision with SyncWorker.NOTIFICATION_ID_AUTH_EXPIRED (1001)
+        private const val CAPTURE_NOTIFICATION_ID = 2001
+        private const val SYNC_ERROR_NOTIFICATION_ID = 2002
     }
 }

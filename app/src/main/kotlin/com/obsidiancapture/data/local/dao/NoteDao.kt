@@ -79,4 +79,22 @@ interface NoteDao {
     /** Get all notes (for export). */
     @Query("SELECT * FROM notes ORDER BY created DESC")
     suspend fun getAllNotes(): List<NoteEntity>
+
+    /** Bulk lookup by uid — used by SyncWorker for stale detection in one DB round-trip. */
+    @Query("SELECT * FROM notes WHERE uid IN (:uids)")
+    suspend fun getAllByUids(uids: List<String>): List<NoteEntity>
+
+    @Query("DELETE FROM notes WHERE uid = :uid")
+    suspend fun deleteByUid(uid: String)
+
+    /**
+     * Atomically replace a local pending_ note with the server-assigned row.
+     * Deletes the old pending_ row and inserts the server-uid row in one transaction
+     * to prevent orphaned pending_ entries from causing duplicate uploads.
+     */
+    @Transaction
+    suspend fun replacePendingWithServer(pendingUid: String, serverNote: NoteEntity) {
+        deleteByUid(pendingUid)
+        upsert(serverNote)
+    }
 }

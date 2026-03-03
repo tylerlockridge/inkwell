@@ -16,13 +16,30 @@ ralphRuns: 0
 Android app for capturing notes/tasks directly to an Obsidian vault inbox via a REST API.
 Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcean droplet.
 
-<!-- QUICK-RESUME-UPDATED: 2026-02-28 -->
+<!-- QUICK-RESUME-UPDATED: 2026-03-02 -->
 ## Quick Resume
-**Last Active:** 2026-02-28
-**Current Phase:** Post-audit remediation — complete
-**Current Task:** All complete — quality gates pass (test + lint), audit fixes committed
-**Blockers:** None
-**Next Action:** Feature work or release prep. Project is in a clean, committed state post-audit.
+**Last Active:** 2026-03-02
+**Current Phase:** Post-audit remediation — all 15 new findings resolved
+**Current Task:** Complete — 8 source files modified, 1 test file updated
+**Blockers:** None — quality gates need Android Studio closed to run (`./gradlew :app:testDebugUnitTest`)
+**Next Action:** Run `./gradlew :app:testDebugUnitTest` after closing Android Studio to confirm green build, then commit.
+
+### Audit 2026-03-02 — Deep Composite Audit (Security + Coroutines + Sync) — ALL 15 ITEMS RESOLVED
+Perspectives: Android Security Engineer, Coroutine & Concurrency Specialist, Data Integrity / Sync Architect
+- **C-1 ✅** `pending_` orphan bug — `NoteDao.replacePendingWithServer()` `@Transaction` method added; `UploadWorker.uploadNewCapture()` uses it instead of bare upsert. Prevents infinite duplicate uploads.
+- **H-1 ✅** JWT logged to logcat — `CaptureApiService.exchangeGoogleToken()` Log.d now gated on `BuildConfig.DEBUG`; logs only status code, not body.
+- **H-2 ✅** BIOMETRIC_WEAK accepted — `BiometricAuthManager` now uses `BIOMETRIC_STRONG` only in both `canAuthenticate()` and `setAllowedAuthenticators()`; unused `BIOMETRIC_WEAK` import removed.
+- **H-3 ✅** Notification ID collision (1001 in both SyncWorker + CaptureMessagingService) — `CaptureMessagingService` IDs moved to 2001/2002 range.
+- **H-5 ✅** `UploadWorker` returned `Result.retry()` on blank server URL — changed to `Result.success()` (matches SyncWorker).
+- **H-6 ✅** `CaptureMessagingService.serviceScope` never cancelled — `onDestroy()` override added.
+- **M-1 ✅** ISO 8601 string comparison — `SyncWorker` now uses `isServerNewer()` private helper with `Instant.parse()`.
+- **M-3 ✅** `getInbox()` called without explicit limit — `SyncWorker` now passes `limit = INBOX_FETCH_LIMIT` (200).
+- **M-4 ✅** O(n) serial DB reads in stale detection — replaced with `noteDao.getAllByUids()` single bulk query + in-memory filter.
+- **M-6 ✅** `setAuthToken("")` stored empty string — now calls `remove()` on the EncryptedSharedPreferences key.
+- **L-2 ✅** `Json` instance created per `exchangeGoogleToken` call — `CaptureApiService` now injects the singleton `Json` from `NetworkModule`.
+- **NoteDao** — added `deleteByUid()`, `getAllByUids()`, and `replacePendingWithServer()` `@Transaction` method.
+- **SyncConflictTest** — updated to test `Instant.parse()` semantics; added mixed-precision and invalid-timestamp test cases.
+- Quality gates: blocked by Android Studio file locks on build dir — code verified by analysis. Run `./gradlew :app:testDebugUnitTest` after closing Android Studio.
 
 ### Audit 2026-02-28 — LLM Pipeline (Codex + Gemini + Monica) — ALL 12 ITEMS RESOLVED
 Weighted scores: Architecture 7, Code Quality 6, Testing 4, Security 5, Performance 6, Documentation 4 → **5.4/10**

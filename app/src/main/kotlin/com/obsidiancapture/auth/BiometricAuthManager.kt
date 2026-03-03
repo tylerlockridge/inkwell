@@ -2,7 +2,6 @@ package com.obsidiancapture.auth
 
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
-import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
@@ -26,7 +25,7 @@ class BiometricAuthManager {
      */
     fun checkCapability(activity: FragmentActivity): Capability {
         val biometricManager = BiometricManager.from(activity)
-        return when (biometricManager.canAuthenticate(BIOMETRIC_STRONG or BIOMETRIC_WEAK)) {
+        return when (biometricManager.canAuthenticate(BIOMETRIC_STRONG)) {
             BiometricManager.BIOMETRIC_SUCCESS -> Capability.AVAILABLE
             BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> Capability.NO_HARDWARE
             BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> Capability.NOT_ENROLLED
@@ -63,7 +62,7 @@ class BiometricAuthManager {
                 .setTitle(activity.getString(com.obsidiancapture.R.string.biometric_prompt_title))
                 .setSubtitle(activity.getString(com.obsidiancapture.R.string.biometric_prompt_subtitle))
                 .setNegativeButtonText("Cancel")
-                .setAllowedAuthenticators(BIOMETRIC_STRONG or BIOMETRIC_WEAK)
+                .setAllowedAuthenticators(BIOMETRIC_STRONG)
                 .build()
 
             prompt.authenticate(promptInfo)
