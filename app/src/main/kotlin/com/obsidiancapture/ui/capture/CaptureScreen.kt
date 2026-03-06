@@ -32,9 +32,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -157,6 +162,7 @@ fun CaptureScreen(
                 onCapture = viewModel::onCapture,
                 onBatchModeToggle = viewModel::onBatchModeToggle,
                 isSubmitting = state.isSubmitting,
+                captureType = state.captureType,
             )
         },
     ) { innerPadding ->
@@ -172,60 +178,131 @@ fun CaptureScreen(
                 )
             }
 
-            // Writing surface — card with ghost watermark behind transparent TextField
-            Box(
+            // Capture type segmented button
+            SingleChoiceSegmentedButtonRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
             ) {
-                // Ghost brand mark — ink drop at 4% opacity, centred on writing surface
-                if (state.unifiedText.isBlank()) {
-                    Image(
-                        painter = painterResource(R.drawable.ic_inkwell_watermark),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(148.dp),
-                        alpha = 0.04f,
-                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
-                    )
+                CaptureType.entries.forEachIndexed { index, type ->
+                    SegmentedButton(
+                        selected = state.captureType == type,
+                        onClick = { viewModel.onCaptureTypeChange(type) },
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = CaptureType.entries.size,
+                        ),
+                    ) {
+                        Text(
+                            when (type) {
+                                CaptureType.TASK -> "Task"
+                                CaptureType.NOTE -> "Note"
+                                CaptureType.LIST -> "List"
+                            },
+                        )
+                    }
                 }
-                TextField(
-                    value = state.unifiedText,
-                    onValueChange = viewModel::onUnifiedTextChange,
-                    placeholder = {
-                        Column {
-                            Text(
-                                text = "Title",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontSize = 18.sp,
-                                    letterSpacing = (-0.2).sp,
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                text = "What's on your mind?",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+            }
+
+            when (state.captureType) {
+                CaptureType.TASK, CaptureType.NOTE -> {
+                    // Writing surface — card with ghost watermark behind transparent TextField
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    ) {
+                        if (state.unifiedText.isBlank()) {
+                            Image(
+                                painter = painterResource(R.drawable.ic_inkwell_watermark),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .size(148.dp),
+                                alpha = 0.04f,
+                                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
                             )
                         }
-                    },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .focusRequester(focusRequester),
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(lineHeight = 26.sp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                    ),
-                )
+                        TextField(
+                            value = state.unifiedText,
+                            onValueChange = viewModel::onUnifiedTextChange,
+                            placeholder = {
+                                Column {
+                                    Text(
+                                        text = "Title",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontSize = 18.sp,
+                                            letterSpacing = (-0.2).sp,
+                                        ),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                                    )
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = if (state.captureType == CaptureType.NOTE) "Write your note..." else "What's on your mind?",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                    )
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .focusRequester(focusRequester),
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(lineHeight = 26.sp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                            ),
+                        )
+                    }
+                }
+                CaptureType.LIST -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = state.listName,
+                            onValueChange = viewModel::onListNameChange,
+                            label = { Text("List Name") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = state.listItems,
+                            onValueChange = viewModel::onListItemsChange,
+                            label = { Text("Items (one per line)") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            minLines = 4,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Keep list",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.weight(1f))
+                            Switch(
+                                checked = state.persistent,
+                                onCheckedChange = viewModel::onPersistentChange,
+                            )
+                        }
+                    }
+                }
             }
 
             // Visual divider after first line (when there's text with a newline)

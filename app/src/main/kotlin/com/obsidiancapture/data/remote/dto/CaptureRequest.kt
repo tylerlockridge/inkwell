@@ -15,4 +15,8 @@ data class CaptureRequest(
     val priority: String? = null,
     val source: String = "android",
     val uuid: String? = null,
+    val captureType: String? = null,
+    val listName: String? = null,
+    val items: List<String>? = null,
+    val persistent: Boolean? = null,
 )

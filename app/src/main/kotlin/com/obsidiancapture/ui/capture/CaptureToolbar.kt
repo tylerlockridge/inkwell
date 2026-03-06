@@ -88,6 +88,7 @@ internal fun SmartToolbar(
     onCapture: () -> Unit,
     onBatchModeToggle: () -> Unit,
     isSubmitting: Boolean,
+    captureType: CaptureType = CaptureType.TASK,
 ) {
     Column(
         modifier = Modifier
@@ -250,6 +251,7 @@ internal fun SmartToolbar(
                 ),
             ) {
                 Row {
+                    // Tags — visible for all capture types
                     CompactToolbarIcon(
                         icon = Icons.Outlined.Tag,
                         contentDescription = "Tags",
@@ -257,34 +259,46 @@ internal fun SmartToolbar(
                         hasSelection = state.selectedTags.isNotEmpty(),
                         onClick = { onToolbarPanelToggle(ToolbarPanel.Tags) },
                     )
-                    CompactToolbarIcon(
-                        icon = Icons.Outlined.Schedule,
-                        contentDescription = "Time",
-                        isActive = state.activeToolbarPanel == ToolbarPanel.Schedule,
-                        hasSelection = state.date != null || state.startTime != null || state.endTime != null,
-                        onClick = { onToolbarPanelToggle(ToolbarPanel.Schedule) },
-                    )
-                    CompactToolbarIcon(
-                        icon = Icons.Outlined.Category,
-                        contentDescription = "Type",
-                        isActive = state.activeToolbarPanel == ToolbarPanel.Type,
-                        hasSelection = state.kind != "one_shot",
-                        onClick = { onToolbarPanelToggle(ToolbarPanel.Type) },
-                    )
-                    CompactToolbarIcon(
-                        icon = Icons.Outlined.CalendarMonth,
-                        contentDescription = "Calendar",
-                        isActive = state.activeToolbarPanel == ToolbarPanel.Calendar,
-                        hasSelection = state.calendar != null,
-                        onClick = { onToolbarPanelToggle(ToolbarPanel.Calendar) },
-                    )
-                    CompactToolbarIcon(
-                        icon = Icons.Outlined.Flag,
-                        contentDescription = "Priority",
-                        isActive = state.activeToolbarPanel == ToolbarPanel.Priority,
-                        hasSelection = state.priority != null,
-                        onClick = { onToolbarPanelToggle(ToolbarPanel.Priority) },
-                    )
+                    // Schedule — hidden for NOTE and LIST
+                    if (captureType == CaptureType.TASK) {
+                        CompactToolbarIcon(
+                            icon = Icons.Outlined.Schedule,
+                            contentDescription = "Time",
+                            isActive = state.activeToolbarPanel == ToolbarPanel.Schedule,
+                            hasSelection = state.date != null || state.startTime != null || state.endTime != null,
+                            onClick = { onToolbarPanelToggle(ToolbarPanel.Schedule) },
+                        )
+                    }
+                    // Type (kind) — hidden for NOTE and LIST
+                    if (captureType == CaptureType.TASK) {
+                        CompactToolbarIcon(
+                            icon = Icons.Outlined.Category,
+                            contentDescription = "Type",
+                            isActive = state.activeToolbarPanel == ToolbarPanel.Type,
+                            hasSelection = state.kind != "one_shot",
+                            onClick = { onToolbarPanelToggle(ToolbarPanel.Type) },
+                        )
+                    }
+                    // Calendar — hidden for NOTE and LIST
+                    if (captureType == CaptureType.TASK) {
+                        CompactToolbarIcon(
+                            icon = Icons.Outlined.CalendarMonth,
+                            contentDescription = "Calendar",
+                            isActive = state.activeToolbarPanel == ToolbarPanel.Calendar,
+                            hasSelection = state.calendar != null,
+                            onClick = { onToolbarPanelToggle(ToolbarPanel.Calendar) },
+                        )
+                    }
+                    // Priority — hidden for NOTE and LIST
+                    if (captureType == CaptureType.TASK) {
+                        CompactToolbarIcon(
+                            icon = Icons.Outlined.Flag,
+                            contentDescription = "Priority",
+                            isActive = state.activeToolbarPanel == ToolbarPanel.Priority,
+                            hasSelection = state.priority != null,
+                            onClick = { onToolbarPanelToggle(ToolbarPanel.Priority) },
+                        )
+                    }
                 }
             }
 
@@ -308,7 +322,11 @@ internal fun SmartToolbar(
             }
 
             // Send button — large, prominent, primary action
-            SendButton(onCapture = onCapture, isSubmitting = isSubmitting)
+            SendButton(
+                onCapture = onCapture,
+                isSubmitting = isSubmitting,
+                captureType = captureType,
+            )
         }
     }
 }
@@ -369,6 +387,7 @@ private fun CompactToolbarIcon(
 private fun SendButton(
     onCapture: () -> Unit,
     isSubmitting: Boolean,
+    captureType: CaptureType = CaptureType.TASK,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -403,7 +422,11 @@ private fun SendButton(
         } else {
             Icon(
                 Icons.AutoMirrored.Filled.Send,
-                contentDescription = "Send",
+                contentDescription = when (captureType) {
+                    CaptureType.NOTE -> "Save Note"
+                    CaptureType.LIST -> "Create List"
+                    CaptureType.TASK -> "Send"
+                },
                 modifier = Modifier.size(22.dp),
             )
         }
