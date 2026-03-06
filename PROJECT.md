@@ -4,11 +4,11 @@ phase: Standalone project — separated from Obsidian-Dashboard-Desktop 2026-02-
 sourcePath: "C:\\Users\\tyler\\Documents\\Claude Projects\\Inkwell"
 repoUrl: "https://github.com/tylerlockridge/inkwell"
 repoSubdir: ""
-ralph: false
+ralph: true
 testCmd: ""
 qualityGates: ["./gradlew test", "./gradlew lint"]
-lastRalphRun: ""
-ralphRuns: 0
+lastRalphRun: "2026-03-06"
+ralphRuns: 1
 ---
 
 # Inkwell
@@ -19,10 +19,20 @@ Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcea
 <!-- QUICK-RESUME-UPDATED: 2026-03-06 -->
 ## Quick Resume
 **Last Active:** 2026-03-06
-**Current Phase:** Test coverage sprint complete; audit findings implemented
-**Current Task:** All 11 PRD stories + Codex 5.3 audit findings implemented
-**Blockers:** None
-**Next Action:** Build and deploy v2.2.1 to phone; verify sync works with auth fix.
+**Current Phase:** Capture type toggle complete; needs APK build + install
+**Current Task:** Capture type toggle (Task/Note/List) merged to master
+**Blockers:** None — build APK and install on phone
+**Next Action:** Build signed APK, install on phone, test Note and List captures end-to-end.
+
+### Session 2026-03-06 — Capture Type Toggle (Ralph Loop)
+- All 5 stories passed (US-001 through US-005)
+- Added 3-segment toggle (Task/Note/List) to CaptureScreen
+- CaptureRequest DTO: added captureType, listName, items, persistent fields
+- SmartToolbar hides irrelevant panels per type (NOTE hides priority/date/calendar, LIST hides all except tags)
+- LIST mode: dedicated List Name + Items fields with persistent toggle
+- NOTE mode: simplified capture, kind locked to "note"
+- Reset and share intent handling preserved
+- 6 files modified, compileDebugKotlin passes
 
 ### Session 2026-03-06 — Codex 5.3 Audit + Auth Fix
 - ✅ Codex 5.3 audit via Monica.im: **8.61/10** (Arch 8.7, Quality 8.4, Testing 9.1, Security 8.9, Perf 8.2, Docs 7.3)
