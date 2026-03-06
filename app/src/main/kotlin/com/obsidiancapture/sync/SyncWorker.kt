@@ -20,6 +20,7 @@ import com.obsidiancapture.widget.WidgetStateUpdater
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import io.ktor.client.plugins.ClientRequestException
+import kotlinx.serialization.SerializationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -143,6 +144,11 @@ class SyncWorker @AssistedInject constructor(
             } else {
                 Result.retry()
             }
+        } catch (e: SerializationException) {
+            // Server returned non-InboxResponse JSON (e.g. error envelope).
+            // This usually means an auth or server-side issue — retry with backoff.
+            Log.e(TAG, "Sync failed: unexpected response format: ${e.message}")
+            Result.retry()
         } catch (e: Exception) {
             Log.e(TAG, "Sync failed: ${e.message}")
             Result.retry()

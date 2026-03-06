@@ -1,6 +1,6 @@
 # Feature: Sync Strategy
 
-*Created: 2026-03-02 | Updated: 2026-03-02 | Project: Inkwell*
+*Created: 2026-03-02 | Updated: 2026-03-06 | Project: Inkwell*
 
 ---
 
@@ -41,14 +41,18 @@ Both workers are scheduled by `SyncScheduler` using WorkManager with:
 
 ### Conflict Resolution
 
-Last-write-wins via ISO 8601 string comparison:
+**Policy: Last-Write-Wins (LWW) with local-pending protection.**
 
 ```
-if (localNote.updated >= item.updated_at) → skip server update (keep local)
-else → apply server update
+if (localNote.pendingSync == true) → skip server update (preserve pending local changes)
+else if (localNote.updated >= item.updated_at) → skip server update (keep local)
+else → apply server update (server is newer)
 ```
 
-**Risk:** If both sides were edited concurrently, the local version silently overwrites the server version (or vice versa) with no user notification.
+Timestamp comparison uses `java.time.Instant.parse()` for mixed-precision ISO 8601 handling.
+On parse failure, server version is treated as newer (fail-safe to avoid stale data).
+
+**Risk:** If both sides were edited concurrently and local is NOT pending sync, the server version silently wins. This is acceptable for a single-user capture app. Multi-user or collaborative editing would require vector clocks or CRDTs.
 
 ### Retry Policy
 
@@ -85,6 +89,26 @@ If any items in the batch succeed, `Result.success()` is returned. The batch is 
 
 ---
 
+## Auth and Error Handling
+
+**Auth token transmission (fixed 2026-03-06):**
+- Ktor bearer auth plugin sends token proactively via `sendWithoutRequest { true }`
+- Previously, token was only sent after a 401 challenge, causing serialization failures on first request
+
+**Error envelope handling (fixed 2026-03-06):**
+- `SerializationException` caught explicitly before generic `Exception`
+- When server returns error JSON instead of expected DTO, worker retries with backoff
+- 401 errors: token cleared, auth-expired notification posted, worker fails permanently
+- 4xx errors: retry
+- 5xx/network errors: retry with exponential backoff
+
+**Tombstone sweep (added 2026-03-02):**
+- After main sync, fetches `GET /api/inbox/deleted?since=<lastSync>`
+- Deletes local notes matching returned UIDs (only if already synced)
+- Non-fatal: sweep failure doesn't affect main sync result
+
+---
+
 ## Status
 
 | Item | Status | Notes |
@@ -95,12 +119,15 @@ If any items in the batch succeed, `Result.success()` is returned. The batch is 
 | Network constraint (CONNECTED) | ✅ PASS | |
 | Exponential backoff | ✅ PASS | |
 | Concurrent detail fetches | ✅ PASS | Fixed 2026-02-28 (was N+1) |
-| Conflict resolution (last-write-wins) | ⚠️ WARN | Silent data loss on concurrent edits |
+| Conflict resolution (LWW + pending protection) | ✅ PASS | Instant.parse for timestamp comparison |
+| Auth header proactive transmission | ✅ PASS | Fixed 2026-03-06 (sendWithoutRequest) |
+| Error envelope handling (SerializationException) | ✅ PASS | Fixed 2026-03-06 |
 | UID routing (pending_* vs real UID) | ✅ PASS | |
 | Error classification (401/4xx/5xx) | ✅ PASS | |
 | Partial success handling | ✅ PASS | |
 | Stale item skip + retry next cycle | ✅ PASS | |
 | Last sync time recorded | ✅ PASS | |
 | Widget counts updated after sync | ✅ PASS | WidgetStateUpdater |
+| Tombstone sweep | ✅ PASS | Added 2026-03-02 |
 | CancellationException rethrown | ⚠️ WARN | Fixed in main callers; edge cases may remain |
 | WorkManager orphan cleanup | ⚠️ WARN | Not handled on uninstall/reinstall |

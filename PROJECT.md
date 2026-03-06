@@ -16,13 +16,19 @@ ralphRuns: 0
 Android app for capturing notes/tasks directly to an Obsidian vault inbox via a REST API.
 Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcean droplet.
 
-<!-- QUICK-RESUME-UPDATED: 2026-03-05 -->
+<!-- QUICK-RESUME-UPDATED: 2026-03-06 -->
 ## Quick Resume
-**Last Active:** 2026-03-05
-**Current Phase:** Test coverage sprint complete; sync bug still outstanding
-**Current Task:** All 11 PRD stories (prd.json) implemented and passing
-**Blockers:** Outstanding bug: `CaptureApiService.getInbox()` may not be sending auth token in Authorization header → server returns `{"error":"..."}` → kotlinx.serialization fails. Need to inspect Ktor HTTP client setup.
-**Next Action:** Fix SyncWorker auth header bug. Then commit test coverage work and push.
+**Last Active:** 2026-03-06
+**Current Phase:** Test coverage sprint complete; audit findings implemented
+**Current Task:** All 11 PRD stories + Codex 5.3 audit findings implemented
+**Blockers:** None
+**Next Action:** Build and deploy v2.2.1 to phone; verify sync works with auth fix.
+
+### Session 2026-03-06 — Codex 5.3 Audit + Auth Fix
+- ✅ Codex 5.3 audit via Monica.im: **8.61/10** (Arch 8.7, Quality 8.4, Testing 9.1, Security 8.9, Perf 8.2, Docs 7.3)
+- ✅ **Fixed auth header bug (HIGH):** Added `sendWithoutRequest { true }` to Ktor bearer auth in NetworkModule.kt — token now sent proactively instead of requiring 401 challenge first
+- ✅ **Hardened error handling:** Added `SerializationException` catch in SyncWorker before generic Exception — non-InboxResponse JSON no longer crashes sync
+- ✅ **Documented sync policy:** Updated documentation/03-sync-strategy.md with formal conflict policy (LWW + pending protection), auth/error handling section, tombstone sweep docs
 
 ### Session 2026-03-05 — Test Coverage Sprint (Ralph Loop)
 - ✅ All 11 stories in `prd.json` complete (US-000 through US-010)
