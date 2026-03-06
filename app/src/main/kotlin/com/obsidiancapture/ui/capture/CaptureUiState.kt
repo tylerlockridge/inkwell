@@ -1,5 +1,7 @@
 package com.obsidiancapture.ui.capture
 
+enum class CaptureType { TASK, NOTE, LIST }
+
 data class CaptureUiState(
     val unifiedText: String = "",
     val selectedTags: Set<String> = emptySet(),
@@ -19,8 +21,15 @@ data class CaptureUiState(
     val isMetadataExpanded: Boolean = false,
     val isServerConfigured: Boolean = false,
     val isBannerDismissed: Boolean = false,
+    val captureType: CaptureType = CaptureType.TASK,
+    val listName: String = "",
+    val listItems: String = "",
+    val persistent: Boolean = false,
 ) {
-    val isValid: Boolean get() = unifiedText.isNotBlank()
+    val isValid: Boolean get() = when (captureType) {
+        CaptureType.TASK, CaptureType.NOTE -> unifiedText.isNotBlank()
+        CaptureType.LIST -> listName.isNotBlank() && listItems.isNotBlank()
+    }
 
     val parsedTitle: String? get() {
         val firstLine = unifiedText.lineSequence().firstOrNull()?.trim()

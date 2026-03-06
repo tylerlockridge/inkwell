@@ -114,6 +114,32 @@ class CaptureViewModel @Inject constructor(
         _uiState.update { it.copy(endTime = endTime) }
     }
 
+    fun onCaptureTypeChange(type: CaptureType) {
+        _uiState.update { state ->
+            when (type) {
+                CaptureType.LIST -> state.copy(
+                    captureType = type,
+                    listName = "",
+                    listItems = "",
+                    persistent = false,
+                )
+                else -> state.copy(captureType = type)
+            }
+        }
+    }
+
+    fun onListNameChange(name: String) {
+        _uiState.update { it.copy(listName = name) }
+    }
+
+    fun onListItemsChange(items: String) {
+        _uiState.update { it.copy(listItems = items) }
+    }
+
+    fun onPersistentChange(persistent: Boolean) {
+        _uiState.update { it.copy(persistent = persistent) }
+    }
+
     fun onBatchModeToggle() {
         _uiState.update { it.copy(batchMode = !it.batchMode) }
     }
@@ -151,16 +177,35 @@ class CaptureViewModel @Inject constructor(
         _uiState.update { it.copy(isSubmitting = true) }
 
         viewModelScope.launch {
+            val captureTypeStr = when (state.captureType) {
+                CaptureType.TASK -> "task"
+                CaptureType.NOTE -> "note"
+                CaptureType.LIST -> "list_item"
+            }
+            val body = when (state.captureType) {
+                CaptureType.LIST -> state.listItems
+                else -> state.parsedBody
+            }
+            val kind = when (state.captureType) {
+                CaptureType.NOTE -> "note"
+                else -> state.kind
+            }
             val result = captureRepository.capture(
-                body = state.parsedBody,
+                body = body,
                 title = state.parsedTitle,
                 tags = state.selectedTags.toList().ifEmpty { null },
-                kind = state.kind,
+                kind = kind,
                 date = state.date,
                 startTime = state.startTime,
                 endTime = state.endTime,
                 calendar = state.calendar,
                 priority = state.priority,
+                captureType = captureTypeStr,
+                listName = if (state.captureType == CaptureType.LIST) state.listName else null,
+                items = if (state.captureType == CaptureType.LIST) {
+                    state.listItems.lines().filter { it.isNotBlank() }
+                } else null,
+                persistent = if (state.captureType == CaptureType.LIST) state.persistent else null,
             )
 
             when (result) {
@@ -170,6 +215,9 @@ class CaptureViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(
                                 unifiedText = "",
+                                listName = "",
+                                listItems = "",
+                                persistent = false,
                                 batchCount = it.batchCount + 1,
                                 isSubmitting = false,
                                 snackbarMessage = message,
@@ -192,6 +240,9 @@ class CaptureViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(
                                 unifiedText = "",
+                                listName = "",
+                                listItems = "",
+                                persistent = false,
                                 batchCount = it.batchCount + 1,
                                 isSubmitting = false,
                                 snackbarMessage = message,

@@ -45,6 +45,10 @@ class CaptureRepository @Inject constructor(
         endTime: String?,
         calendar: String?,
         priority: String?,
+        captureType: String? = null,
+        listName: String? = null,
+        items: List<String>? = null,
+        persistent: Boolean? = null,
     ): CaptureResult {
         val clientUuid = UUID.randomUUID().toString()
         val now = Instant.now().toString()
@@ -61,6 +65,10 @@ class CaptureRepository @Inject constructor(
             priority = priority,
             source = "android",
             uuid = clientUuid,
+            captureType = captureType,
+            listName = listName,
+            items = items,
+            persistent = persistent,
         )
 
         val serverUrl = preferencesManager.serverUrl.first()
