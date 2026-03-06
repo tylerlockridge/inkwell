@@ -27,6 +27,11 @@ Server:       See Obsidian-Dashboard-Desktop project — 138.197.81.173
 ## Secrets Policy
 **NEVER** commit: `local.properties`, `keys/` directory (signing keystore), auth tokens.
 
+## Signing Credentials
+Stored in `local.properties` (gitignored). Read that file to get `KEYSTORE_PATH`,
+`KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` — no need to ask the user.
+Keystore: `keys/release.keystore` | SHA-256 fingerprint in project memory.
+
 ## Do NOT
 - `git push --force`
 - Commit local.properties or keystore files

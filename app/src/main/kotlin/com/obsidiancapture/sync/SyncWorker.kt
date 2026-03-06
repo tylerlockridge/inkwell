@@ -43,6 +43,10 @@ class SyncWorker @AssistedInject constructor(
         val serverUrl = preferencesManager.serverUrl.first()
         if (serverUrl.isBlank()) return Result.success()
 
+        // Capture before any sync writes so the tombstone sweep only fetches
+        // items orphaned since the last successful sync (null = full sweep on first run).
+        val priorSyncedAt = preferencesManager.lastSyncedAt.first().ifBlank { null }
+
         return try {
             val response = apiService.getInbox(serverUrl, limit = INBOX_FETCH_LIMIT)
             val now = java.time.Instant.now().toString()
@@ -99,6 +103,19 @@ class SyncWorker @AssistedInject constructor(
 
             if (failCount > 0) {
                 Log.w(TAG, "Sync completed with errors: $successCount ok, $failCount failed")
+            }
+
+            // Tombstone sweep: delete local notes that the server has marked orphaned
+            try {
+                val deleted = apiService.getDeletedInbox(serverUrl, since = priorSyncedAt)
+                val deletedUids = deleted.items.map { it.uid }
+                if (deletedUids.isNotEmpty()) {
+                    noteDao.deleteByUidsIfSynced(deletedUids)
+                    Log.d(TAG, "Tombstone sweep: removed ${deletedUids.size} orphaned note(s)")
+                }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                Log.w(TAG, "Tombstone sweep failed (non-fatal): ${e.message}")
             }
 
             // Record last successful sync time

@@ -130,6 +130,12 @@ class CaptureApiService @Inject constructor(
         }
     }
 
+    suspend fun getDeletedInbox(baseUrl: String, since: String? = null): InboxResponse {
+        return httpClient.get("$baseUrl/api/inbox/deleted") {
+            since?.let { parameter("since", it) }
+        }.body()
+    }
+
     suspend fun exchangeGoogleToken(baseUrl: String, idToken: String): Result<String> {
         return try {
             val httpResponse = unauthenticatedClient.post("$baseUrl/api/auth/google") {

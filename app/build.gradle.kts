@@ -23,8 +23,8 @@ android {
         applicationId = "com.obsidiancapture"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "2.1.2"
+        versionCode = 10
+        versionName = "2.2.0"
 
         testInstrumentationRunner = "com.obsidiancapture.HiltTestRunner"
 
@@ -34,10 +34,10 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystorePath = System.getenv("KEYSTORE_PATH") ?: findProperty("KEYSTORE_PATH")?.toString()
-            val ksPassword = System.getenv("KEYSTORE_PASSWORD") ?: findProperty("KEYSTORE_PASSWORD")?.toString()
-            val keyAlias = System.getenv("KEY_ALIAS") ?: findProperty("KEY_ALIAS")?.toString() ?: "release"
-            val keyPwd = System.getenv("KEY_PASSWORD") ?: findProperty("KEY_PASSWORD")?.toString()
+            val keystorePath = System.getenv("KEYSTORE_PATH") ?: localProps.getProperty("KEYSTORE_PATH") ?: findProperty("KEYSTORE_PATH")?.toString()
+            val ksPassword = System.getenv("KEYSTORE_PASSWORD") ?: localProps.getProperty("KEYSTORE_PASSWORD") ?: findProperty("KEYSTORE_PASSWORD")?.toString()
+            val keyAlias = System.getenv("KEY_ALIAS") ?: localProps.getProperty("KEY_ALIAS") ?: findProperty("KEY_ALIAS")?.toString() ?: "release"
+            val keyPwd = System.getenv("KEY_PASSWORD") ?: localProps.getProperty("KEY_PASSWORD") ?: findProperty("KEY_PASSWORD")?.toString()
 
             if (keystorePath != null && ksPassword != null && keyPwd != null) {
                 val ksFile = file(keystorePath)
@@ -167,6 +167,10 @@ dependencies {
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
+    testImplementation(libs.mockk)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.turbine)
+    testImplementation(libs.workmanager.testing)
     androidTestImplementation(libs.compose.test.junit4)
     androidTestImplementation(libs.hilt.testing)
     androidTestImplementation(libs.androidx.test.runner)

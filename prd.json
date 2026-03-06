@@ -1,0 +1,243 @@
+{
+  "schemaVersion": "1.0",
+  "projectName": "Inkwell Test Coverage - Critical Business Logic",
+  "branchName": "ralph/test-coverage",
+  "createdAt": "2026-03-05T22:00:00Z",
+  "updatedAt": "2026-03-05T23:30:00Z",
+  "maxIterations": 10,
+  "qualityGates": [
+    "./gradlew test",
+    "./gradlew lint"
+  ],
+  "userStories": [
+    {
+      "id": "US-000",
+      "title": "Test Infrastructure Setup",
+      "description": "Add MockK, Robolectric, and Turbine to testImplementation dependencies in build.gradle.kts. kotlinx-coroutines-test is already present. Verify test task runs with existing test suite.",
+      "status": "complete",
+      "dependsOn": [],
+      "acceptanceCriteria": [
+        "Add version entries to gradle/libs.versions.toml for mockk, robolectric, turbine, work-testing",
+        "testImplementation io.mockk:mockk added via libs.mockk (NOT mockk-android)",
+        "testImplementation org.robolectric:robolectric added via libs.robolectric",
+        "testImplementation app.cash.turbine:turbine added via libs.turbine",
+        "testImplementation androidx.work:work-testing added via libs.workmanager.testing",
+        "kotlinx-coroutines-test already present - do NOT duplicate",
+        "./gradlew test passes with all 30 existing test files",
+        "./gradlew lint passes"
+      ],
+      "passes": false,
+      "notes": "IMPORTANT: (1) Use io.mockk:mockk NOT mockk-android for testImplementation. The -android variant is for androidTestImplementation. (2) Add version catalog entries to gradle/libs.versions.toml FIRST, then reference via libs.xxx in build.gradle.kts to match project convention. (3) kotlinx-coroutines-test 1.9.0 is ALREADY present. (4) work-testing is needed for SyncWorker/UploadWorker tests in US-002/003. (5) After adding deps, run ./gradlew test and confirm all 30 existing tests still pass. If any break, remove the offending dep and find an alternative."
+    },
+    {
+      "id": "US-001",
+      "title": "SyncWorker conflict resolution - isServerNewer and stale detection",
+      "description": "Extend SyncConflictTest.kt with deeper conflict resolution tests. Test via public doWork or by replicating the isServerNewer logic since it is private. Add stale detection and pendingSync skip tests.",
+      "status": "complete",
+      "dependsOn": [
+        "US-000"
+      ],
+      "acceptanceCriteria": [
+        "Tests added to EXISTING SyncConflictTest.kt file",
+        "Uses MockK for SyncWorker dependencies",
+        "Test: server newer timestamp overwrites local",
+        "Test: local newer timestamp preserved",
+        "Test: equal timestamps local wins",
+        "Test: malformed timestamp falls back to server newer",
+        "Test: mixed millisecond precision handled correctly",
+        "Test: pendingSync=true note always skipped",
+        "Test: note not in local DB is included in sync",
+        "./gradlew test passes"
+      ],
+      "passes": false,
+      "notes": "CRITICAL: SyncConflictTest.kt ALREADY EXISTS with 9 tests. ADD deeper tests to this file. Existing test at line 40 already covers basic pendingSync skip - new pendingSync test should cover it in context of the full stale-detection filter from SyncWorker lines 57-61, not just the boolean check. Do NOT create SyncWorkerConflictTest.kt."
+    },
+    {
+      "id": "US-002",
+      "title": "SyncWorker partial fetch failure and retry decision",
+      "description": "Test partial failures. Retry only if all fail and items non-empty.",
+      "status": "complete",
+      "dependsOn": [
+        "US-000"
+      ],
+      "acceptanceCriteria": [
+        "New test: SyncWorkerIntegrationTest.kt",
+        "Uses MockK for apiService and noteDao",
+        "Test: 1 of 3 items fetch fails returns Result.success",
+        "Test: all items fail returns Result.retry",
+        "Test: all succeed returns Result.success with count=3",
+        "Test: empty inbox returns Result.success",
+        "Test: CancellationException is re-thrown not caught",
+        "./gradlew test passes"
+      ],
+      "passes": false,
+      "notes": "SyncWorkerResultTest.kt ALREADY EXISTS with 7 tests covering retry decision at the value level. This story tests ACTUAL doWork behavior. SyncWorker is a @HiltWorker with @AssistedInject - use TestWorkerBuilder from work-testing to construct it, inject mocked noteDao, apiService, preferencesManager. Place test in com.obsidiancapture package under app/src/test/kotlin/com/obsidiancapture/ to match existing convention."
+    },
+    {
+      "id": "US-003",
+      "title": "SyncWorker tombstone sweep pending protection",
+      "description": "Test deleteByUidsIfSynced only deletes pending_sync=0.",
+      "status": "complete",
+      "dependsOn": [
+        "US-000"
+      ],
+      "acceptanceCriteria": [
+        "Test: doWork calls deleteByUidsIfSynced with correct UIDs from getDeletedInbox",
+        "Test: UIDs from server deletion list are passed through",
+        "Test: empty deletion list does not call deleteByUidsIfSynced",
+        "Test: deleteByUidsIfSynced exceptions are caught and logged",
+        "./gradlew test passes"
+      ],
+      "passes": false,
+      "notes": "deleteByUidsIfSynced is a Room DAO @Query method - the pending_sync=0 filtering happens in SQL, not Kotlin. Do NOT try to verify pending vs non-pending in a unit test. Instead verify that doWork passes the correct UID list from apiService.getDeletedInbox to noteDao.deleteByUidsIfSynced. Use MockK to capture the argument."
+    },
+    {
+      "id": "US-004",
+      "title": "CaptureMessagingService FCM message routing",
+      "description": "Test onMessageReceived routing by type. Missing type silently dropped.",
+      "status": "complete",
+      "dependsOn": [
+        "US-000"
+      ],
+      "acceptanceCriteria": [
+        "New test: CaptureMessagingServiceTest.kt",
+        "Test: new_capture creates notification",
+        "Test: missing uid => inbox link",
+        "Test: missing title => default",
+        "Test: sync_required => triggerSync",
+        "Test: sync_error => error notification",
+        "Test: missing type dropped",
+        "Test: unknown type dropped",
+        "./gradlew test passes"
+      ],
+      "passes": false,
+      "notes": "CaptureMessagingService extends FirebaseMessagingService and is @AndroidEntryPoint. Testing onMessageReceived directly requires Robolectric + Hilt test setup. ALTERNATIVE: extract the routing logic into a testable companion or helper function and test that. onMessageReceived routes by data type: new_capture, sync_required, sync_error. Missing type returns early silently."
+    },
+    {
+      "id": "US-005",
+      "title": "CaptureMessagingService token registration",
+      "description": "Test onNewToken and registerTokenWithServer error handling.",
+      "status": "complete",
+      "dependsOn": [
+        "US-004",
+        "US-000"
+      ],
+      "acceptanceCriteria": [
+        "Test: token persisted",
+        "Test: token registered",
+        "Test: blank serverUrl early return",
+        "Test: blank deviceId early return",
+        "Test: network failure caught",
+        "Test: success posts",
+        "./gradlew test passes"
+      ],
+      "passes": false,
+      "notes": "registerTokenWithServer is private. Test via onNewToken which calls it. Needs MockK for PreferencesManager and apiService. Blank serverUrl or blank deviceId triggers early return without calling API. CaptureMessagingService uses serviceScope with Dispatchers.IO - either inject a TestCoroutineDispatcher or use advanceUntilIdle after calling onNewToken."
+    },
+    {
+      "id": "US-006",
+      "title": "NotificationActionReceiver onReceive and pendingResult lifecycle",
+      "description": "Test MARK_DONE RETRY_SYNC unknown. Verify pendingResult.finish always called.",
+      "status": "complete",
+      "dependsOn": [
+        "US-000"
+      ],
+      "acceptanceCriteria": [
+        "Tests added to EXISTING NotificationActionReceiverTest.kt file",
+        "Test: MARK_DONE update+cancel",
+        "Test: MARK_DONE id=0 no cancel",
+        "Test: MARK_DONE missing uid early return",
+        "Test: MARK_DONE exception finish called",
+        "Test: RETRY_SYNC triggerSync+cancel",
+        "Test: unknown finish immediately",
+        "./gradlew test passes"
+      ],
+      "passes": false,
+      "notes": "CRITICAL: NotificationActionReceiverTest.kt ALREADY EXISTS with 5 constant-value tests. ADD behavior tests. Use spyk on NotificationActionReceiver (not mockkStatic) and mock goAsync() to return a mock PendingResult. CAUTION: missing uid on MARK_DONE triggers early return which SKIPS pendingResult.finish() - this is a known bug/leak in the source. Test should verify finish is NOT called in that case. For successful paths, verify finish IS always called."
+    },
+    {
+      "id": "US-007",
+      "title": "DeepLink parseToRoute comprehensive routing",
+      "description": "Test custom scheme and HTTPS App Links. All routes and edge cases.",
+      "status": "complete",
+      "dependsOn": [
+        "US-000"
+      ],
+      "acceptanceCriteria": [
+        "Tests added to EXISTING DeepLinkTest.kt file",
+        "Test: null => null",
+        "Test: custom capture/inbox/system-health/note",
+        "Test: custom blank uid => null",
+        "Test: HTTPS capture/inbox/note",
+        "Test: HTTPS missing uid => null",
+        "Test: wrong host => null",
+        "Test: unknown dest => null",
+        "./gradlew test passes"
+      ],
+      "passes": false,
+      "notes": "CRITICAL: DeepLinkTest.kt ALREADY EXISTS with 9 constant/scheme tests. ADD parseToRoute routing tests. MUST use @RunWith(RobolectricTestRunner::class) annotation for Uri.parse() to work in local JVM tests. Test both custom scheme obsidiancapture:// and HTTPS App Links https://tyler-capture.duckdns.org/app/*."
+    },
+    {
+      "id": "US-008",
+      "title": "InboxRepository syncInbox success and error paths",
+      "description": "Test full sync flow. Blank serverUrl, per-item failure, pending skips.",
+      "status": "complete",
+      "dependsOn": [
+        "US-000"
+      ],
+      "acceptanceCriteria": [
+        "New test: InboxRepositoryTest.kt",
+        "Test: blank url => NoServer",
+        "Test: 3 newer => count=3",
+        "Test: 1 local newer => skipped",
+        "Test: 1 pending => skipped",
+        "Test: 1 fetch fail => others ok",
+        "Test: network error => Error",
+        "Test: all synced => Success(0)",
+        "./gradlew test passes"
+      ],
+      "passes": false,
+      "notes": "No existing tests for InboxRepository. syncInbox fetches from server, compares timestamps as strings not Instant.parse, skips pendingSync notes, skips if local >= server. InboxRepository constructor requires syncScheduler: SyncScheduler which MUST be mocked in all tests."
+    },
+    {
+      "id": "US-009",
+      "title": "InboxRepository updateNoteStatus DB-first pattern",
+      "description": "Test DB-first write. API success marks synced. API failure returns true+uploads.",
+      "status": "complete",
+      "dependsOn": [
+        "US-008",
+        "US-000"
+      ],
+      "acceptanceCriteria": [
+        "Test: valid => DB+API+markSynced",
+        "Test: blank url => DB+upload true",
+        "Test: API fail => DB done upload true",
+        "Test: updateStatus before API",
+        "Test: updateContent same pattern",
+        "./gradlew test passes"
+      ],
+      "passes": false,
+      "notes": "updateNoteStatus and updateNoteContent both follow DB-first pattern: update local immediately, attempt server update, mark synced on success, mark pendingSync and trigger upload on failure. Always returns true."
+    },
+    {
+      "id": "US-010",
+      "title": "WidgetStateUpdater persistence and error handling",
+      "description": "Test updateCounts DataStore writes and widget errors.",
+      "status": "complete",
+      "dependsOn": [
+        "US-000"
+      ],
+      "acceptanceCriteria": [
+        "Tests added to EXISTING WidgetStateTest.kt file",
+        "Test: writes correctly",
+        "Test: zeros ok",
+        "Test: widget exception caught",
+        "Test: rapid calls last wins",
+        "Test: negative as-is",
+        "./gradlew test passes"
+      ],
+      "passes": false,
+      "notes": "CRITICAL: WidgetStateTest.kt ALREADY EXISTS with 7 constant/instantiation tests. ADD updateCounts behavior tests. Use mockkObject(WidgetStateUpdater) and verify calls, OR use Robolectric with ApplicationProvider.getApplicationContext() for DataStore. Widget updateAll() calls on InboxCountWidget/QuickCaptureWidget must be mocked since Glance requires a running app."
+    }
+  ]
+}

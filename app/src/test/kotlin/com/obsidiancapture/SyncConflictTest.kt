@@ -102,6 +102,71 @@ class SyncConflictTest {
         assertTrue(errored.syncError != null)
     }
 
+    // --- US-001: Deeper conflict resolution tests replicating SyncWorker filter logic ---
+
+    /**
+     * Replicates the stale-item filter from SyncWorker lines 57-61:
+     * localNote?.pendingSync != true && (localNote == null || isServerNewer(local, server))
+     */
+    private fun isServerNewer(localTs: String, serverTs: String): Boolean {
+        return try {
+            java.time.Instant.parse(localTs) < java.time.Instant.parse(serverTs)
+        } catch (_: Exception) {
+            true
+        }
+    }
+
+    private fun shouldSync(localNote: NoteEntity?, serverUpdatedAt: String): Boolean {
+        return localNote?.pendingSync != true &&
+            (localNote == null || isServerNewer(localNote.updated, serverUpdatedAt))
+    }
+
+    @Test
+    fun `stale filter - server newer timestamp overwrites local`() {
+        val local = makeNote(updated = "2026-02-08T10:00:00Z")
+        assertTrue(shouldSync(local, "2026-02-08T12:00:00Z"))
+    }
+
+    @Test
+    fun `stale filter - local newer timestamp preserved`() {
+        val local = makeNote(updated = "2026-02-08T14:00:00Z")
+        assertFalse(shouldSync(local, "2026-02-08T12:00:00Z"))
+    }
+
+    @Test
+    fun `stale filter - equal timestamps local wins`() {
+        val local = makeNote(updated = "2026-02-08T12:00:00Z")
+        assertFalse(shouldSync(local, "2026-02-08T12:00:00Z"))
+    }
+
+    @Test
+    fun `stale filter - malformed timestamp falls back to server newer`() {
+        val local = makeNote(updated = "not-a-date")
+        assertTrue(shouldSync(local, "2026-02-08T10:00:00Z"))
+    }
+
+    @Test
+    fun `stale filter - mixed millisecond precision handled correctly`() {
+        // "T10:00:00.000Z" and "T10:00:00Z" are the same instant
+        val local = makeNote(updated = "2026-02-08T10:00:00.000Z")
+        assertFalse(shouldSync(local, "2026-02-08T10:00:00Z"))
+
+        // But sub-second difference IS newer
+        val local2 = makeNote(updated = "2026-02-08T10:00:00Z")
+        assertTrue(shouldSync(local2, "2026-02-08T10:00:00.001Z"))
+    }
+
+    @Test
+    fun `stale filter - pendingSync true always skipped even if server is newer`() {
+        val local = makeNote(updated = "2020-01-01T00:00:00Z", pendingSync = true)
+        assertFalse(shouldSync(local, "2026-12-31T23:59:59Z"))
+    }
+
+    @Test
+    fun `stale filter - note not in local DB is included in sync`() {
+        assertTrue(shouldSync(null, "2026-02-08T10:00:00Z"))
+    }
+
     private fun makeNote(
         updated: String = "2026-02-08T10:00:00Z",
         pendingSync: Boolean = false,

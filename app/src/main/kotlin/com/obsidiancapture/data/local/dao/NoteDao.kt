@@ -88,6 +88,14 @@ interface NoteDao {
     suspend fun deleteByUid(uid: String)
 
     /**
+     * Delete notes whose UIDs match the server's tombstone list, but only if they
+     * have no pending local edits. Notes with [pendingSync] = true are skipped to
+     * prevent silently discarding unsaved changes.
+     */
+    @Query("DELETE FROM notes WHERE uid IN (:uids) AND pending_sync = 0")
+    suspend fun deleteByUidsIfSynced(uids: List<String>)
+
+    /**
      * Atomically replace a local pending_ note with the server-assigned row.
      * Deletes the old pending_ row and inserts the server-uid row in one transaction
      * to prevent orphaned pending_ entries from causing duplicate uploads.

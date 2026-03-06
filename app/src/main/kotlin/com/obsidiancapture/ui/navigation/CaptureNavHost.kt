@@ -93,7 +93,10 @@ fun CaptureNavHost(
         ) {
             composable(
                 route = Screen.Capture.route,
-                deepLinks = listOf(navDeepLink { uriPattern = DeepLink.CAPTURE_URI }),
+                deepLinks = listOf(
+                    navDeepLink { uriPattern = DeepLink.CAPTURE_URI },
+                    navDeepLink { uriPattern = DeepLink.HTTPS_CAPTURE_URI },
+                ),
             ) {
                 CaptureScreen(
                     sharedText = sharedText,
@@ -111,7 +114,10 @@ fun CaptureNavHost(
             }
             composable(
                 route = Screen.Inbox.route,
-                deepLinks = listOf(navDeepLink { uriPattern = DeepLink.INBOX_URI }),
+                deepLinks = listOf(
+                    navDeepLink { uriPattern = DeepLink.INBOX_URI },
+                    navDeepLink { uriPattern = DeepLink.HTTPS_INBOX_URI },
+                ),
             ) {
                 InboxScreen(
                     onNoteClick = { uid ->
@@ -140,7 +146,10 @@ fun CaptureNavHost(
             composable(
                 route = Screen.NOTE_DETAIL_ROUTE,
                 arguments = listOf(navArgument("uid") { type = NavType.StringType }),
-                deepLinks = listOf(navDeepLink { uriPattern = DeepLink.NOTE_DETAIL_URI }),
+                deepLinks = listOf(
+                    navDeepLink { uriPattern = DeepLink.NOTE_DETAIL_URI },
+                    navDeepLink { uriPattern = DeepLink.HTTPS_NOTE_DETAIL_URI },
+                ),
             ) {
                 NoteDetailScreen(
                     onNavigateBack = { navController.popBackStack() },
@@ -155,7 +164,10 @@ fun CaptureNavHost(
             }
             composable(
                 route = Screen.SYSTEM_HEALTH_ROUTE,
-                deepLinks = listOf(navDeepLink { uriPattern = DeepLink.SYSTEM_HEALTH_URI }),
+                deepLinks = listOf(
+                    navDeepLink { uriPattern = DeepLink.SYSTEM_HEALTH_URI },
+                    navDeepLink { uriPattern = DeepLink.HTTPS_SYSTEM_HEALTH_URI },
+                ),
             ) {
                 SystemHealthScreen(
                     onNavigateBack = { navController.popBackStack() },
