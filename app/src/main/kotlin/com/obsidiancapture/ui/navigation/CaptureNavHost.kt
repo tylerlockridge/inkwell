@@ -12,11 +12,13 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import com.obsidiancapture.ui.theme.md_theme_dark_primary
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -76,6 +78,11 @@ fun CaptureNavHost(
                                 )
                             },
                             label = { Text(screen.label) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = md_theme_dark_primary,
+                                selectedTextColor = md_theme_dark_primary,
+                                indicatorColor = md_theme_dark_primary.copy(alpha = 0.15f),
+                            ),
                         )
                     }
                 }

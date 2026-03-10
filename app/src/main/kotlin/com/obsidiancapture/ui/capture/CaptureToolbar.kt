@@ -426,6 +426,7 @@ private fun SendButton(
                     CaptureType.NOTE -> "Save Note"
                     CaptureType.LIST -> "Create List"
                     CaptureType.TASK -> "Send"
+                    CaptureType.IDEA -> "Capture Idea"
                 },
                 modifier = Modifier.size(22.dp),
             )

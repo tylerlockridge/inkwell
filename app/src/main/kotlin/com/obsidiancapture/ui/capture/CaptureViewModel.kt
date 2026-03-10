@@ -1,7 +1,10 @@
 package com.obsidiancapture.ui.capture
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.obsidiancapture.data.coach.CoachMarkKey
+import com.obsidiancapture.data.coach.CoachMarkManager
 import com.obsidiancapture.data.local.PreferencesManager
 import com.obsidiancapture.data.repository.CaptureRepository
 import com.obsidiancapture.data.repository.CaptureResult
@@ -21,6 +24,7 @@ import javax.inject.Inject
 class CaptureViewModel @Inject constructor(
     private val captureRepository: CaptureRepository,
     private val preferencesManager: PreferencesManager,
+    private val coachMarkManager: CoachMarkManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CaptureUiState())
@@ -39,6 +43,23 @@ class CaptureViewModel @Inject constructor(
                 url.isNotBlank() && token.isNotBlank()
             }.collect { configured ->
                 _uiState.update { it.copy(isServerConfigured = configured) }
+            }
+        }
+
+        // Collect coach mark dismissal state
+        viewModelScope.launch {
+            coachMarkManager.isDismissed(CoachMarkKey.TYPE_TOGGLE).collect { dismissed ->
+                _uiState.update { it.copy(showTypeToggleCoachMark = !dismissed) }
+            }
+        }
+        viewModelScope.launch {
+            coachMarkManager.isDismissed(CoachMarkKey.IDEA_TYPE).collect { dismissed ->
+                _uiState.update { it.copy(showIdeaTypeCoachMark = !dismissed) }
+            }
+        }
+        viewModelScope.launch {
+            coachMarkManager.isDismissed(CoachMarkKey.ATTACHMENT_BUTTON).collect { dismissed ->
+                _uiState.update { it.copy(showAttachmentCoachMark = !dismissed) }
             }
         }
 
@@ -128,6 +149,18 @@ class CaptureViewModel @Inject constructor(
         }
     }
 
+    fun onAttachmentsAdded(uris: List<Uri>) {
+        _uiState.update { it.copy(selectedAttachments = it.selectedAttachments + uris) }
+    }
+
+    fun onAttachmentRemoved(uri: Uri) {
+        _uiState.update { it.copy(selectedAttachments = it.selectedAttachments - uri) }
+    }
+
+    fun dismissCoachMark(key: CoachMarkKey) {
+        viewModelScope.launch { coachMarkManager.dismiss(key) }
+    }
+
     fun onListNameChange(name: String) {
         _uiState.update { it.copy(listName = name) }
     }
@@ -181,6 +214,7 @@ class CaptureViewModel @Inject constructor(
                 CaptureType.TASK -> "task"
                 CaptureType.NOTE -> "note"
                 CaptureType.LIST -> "list_item"
+                CaptureType.IDEA -> "task"
             }
             val body = when (state.captureType) {
                 CaptureType.LIST -> state.listItems
@@ -188,6 +222,7 @@ class CaptureViewModel @Inject constructor(
             }
             val kind = when (state.captureType) {
                 CaptureType.NOTE -> "note"
+                CaptureType.IDEA -> "brainstorming"
                 else -> state.kind
             }
             val result = captureRepository.capture(
@@ -206,6 +241,7 @@ class CaptureViewModel @Inject constructor(
                     state.listItems.lines().filter { it.isNotBlank() }
                 } else null,
                 persistent = if (state.captureType == CaptureType.LIST) state.persistent else null,
+                attachmentUris = state.selectedAttachments.map { it.toString() }.ifEmpty { null },
             )
 
             when (result) {
@@ -218,6 +254,7 @@ class CaptureViewModel @Inject constructor(
                                 listName = "",
                                 listItems = "",
                                 persistent = false,
+                                selectedAttachments = emptyList(),
                                 batchCount = it.batchCount + 1,
                                 isSubmitting = false,
                                 snackbarMessage = message,
@@ -243,6 +280,7 @@ class CaptureViewModel @Inject constructor(
                                 listName = "",
                                 listItems = "",
                                 persistent = false,
+                                selectedAttachments = emptyList(),
                                 batchCount = it.batchCount + 1,
                                 isSubmitting = false,
                                 snackbarMessage = message,

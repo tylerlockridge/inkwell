@@ -15,8 +15,6 @@ data class SettingsUiState(
     val isTestingConnection: Boolean = false,
     val connectionStatus: ConnectionStatus = ConnectionStatus.Unknown,
     val snackbarMessage: String? = null,
-    val isGoogleSignInLoading: Boolean = false,
-    val googleSignInEmail: String? = null,
     val isExporting: Boolean = false,
 )
 

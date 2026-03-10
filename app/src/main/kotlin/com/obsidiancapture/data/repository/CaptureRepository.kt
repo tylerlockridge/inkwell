@@ -15,6 +15,9 @@ import com.obsidiancapture.widget.WidgetStateUpdater
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
@@ -49,9 +52,13 @@ class CaptureRepository @Inject constructor(
         listName: String? = null,
         items: List<String>? = null,
         persistent: Boolean? = null,
+        attachmentUris: List<String>? = null,
     ): CaptureResult {
         val clientUuid = UUID.randomUUID().toString()
         val now = Instant.now().toString()
+
+        val attachmentUrisJson = attachmentUris?.takeIf { it.isNotEmpty() }
+            ?.let { Json.encodeToString(ListSerializer(String.serializer()), it) }
 
         val request = CaptureRequest(
             body = body,
@@ -73,7 +80,7 @@ class CaptureRepository @Inject constructor(
 
         val serverUrl = preferencesManager.serverUrl.first()
         if (serverUrl.isBlank()) {
-            return saveOffline(request, clientUuid, now)
+            return saveOffline(request, clientUuid, now, attachmentUrisJson)
         }
 
         return try {
@@ -97,6 +104,7 @@ class CaptureRepository @Inject constructor(
                     syncedAt = now,
                     pendingSync = false,
                     clientUuid = clientUuid,
+                    attachmentUris = attachmentUrisJson,
                 )
             )
             updateWidgets()
@@ -104,7 +112,7 @@ class CaptureRepository @Inject constructor(
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             android.util.Log.i("CaptureRepository", "Network unavailable, saving offline: ${e.javaClass.simpleName}")
-            saveOffline(request, clientUuid, now)
+            saveOffline(request, clientUuid, now, attachmentUrisJson)
         }
     }
 
@@ -112,6 +120,7 @@ class CaptureRepository @Inject constructor(
         request: CaptureRequest,
         clientUuid: String,
         now: String,
+        attachmentUrisJson: String? = null,
     ): CaptureResult {
         val tempUid = "pending_$clientUuid"
         noteDao.upsert(
@@ -131,6 +140,7 @@ class CaptureRepository @Inject constructor(
                 updated = now,
                 pendingSync = true,
                 clientUuid = clientUuid,
+                attachmentUris = attachmentUrisJson,
             )
         )
         updateWidgets()

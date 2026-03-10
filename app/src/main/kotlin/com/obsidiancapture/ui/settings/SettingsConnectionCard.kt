@@ -16,14 +16,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.LinkOff
-import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +35,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -55,7 +51,6 @@ internal fun ConnectionCard(
     onToggleTokenVisibility: () -> Unit,
     onTestConnection: () -> Unit,
     onDisconnect: () -> Unit,
-    onGoogleSignIn: (context: android.content.Context) -> Unit,
 ) {
     val isConnected = state.serverUrl.isNotBlank() && state.authToken.isNotBlank()
     var showManualToken by remember { mutableStateOf(false) }
@@ -107,14 +102,6 @@ internal fun ConnectionCard(
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                 )
 
-                if (state.googleSignInEmail != null) {
-                    Text(
-                        text = "as ${state.googleSignInEmail}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                    )
-                }
-
                 ConnectionStatusIndicator(
                     status = state.connectionStatus,
                     onRetry = onTestConnection,
@@ -156,11 +143,6 @@ internal fun ConnectionCard(
                     leadingIcon = { Icon(Icons.Outlined.Cloud, contentDescription = null) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                )
-
-                GoogleSignInButton(
-                    isLoading = state.isGoogleSignInLoading,
-                    onSignIn = onGoogleSignIn,
                 )
 
                 // Collapsible manual token entry
@@ -270,29 +252,3 @@ private fun ConnectionStatusIndicator(
     }
 }
 
-@Composable
-private fun GoogleSignInButton(
-    isLoading: Boolean,
-    onSignIn: (context: android.content.Context) -> Unit,
-) {
-    val context = LocalContext.current
-
-    FilledTonalButton(
-        onClick = { onSignIn(context) },
-        enabled = !isLoading,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(18.dp),
-                strokeWidth = 2.dp,
-            )
-            Spacer(Modifier.width(8.dp))
-            Text("Signing in...")
-        } else {
-            Icon(Icons.Outlined.PersonAdd, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Sign in with Google")
-        }
-    }
-}

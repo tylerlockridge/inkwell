@@ -2,43 +2,50 @@ package com.obsidiancapture.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
  * Capture app typography hierarchy.
- * Used by CaptureTheme via MaterialTheme(typography = CaptureTypography).
+ * Display/headline styles use FontFamily.Serif for an editorial, journal-like feel
+ * that complements the aged-amber dark palette.
  */
 val CaptureTypography = Typography(
     headlineLarge = TextStyle(
+        fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.Bold,
         fontSize = 28.sp,
         lineHeight = 34.sp,
-        letterSpacing = (-0.8).sp,
+        letterSpacing = (-0.5).sp,
     ),
     headlineMedium = TextStyle(
+        fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
         lineHeight = 30.sp,
-        letterSpacing = (-0.3).sp,
-    ),
-    headlineSmall = TextStyle(
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 20.sp,
-        lineHeight = 26.sp,
         letterSpacing = (-0.2).sp,
     ),
-    titleLarge = TextStyle(
+    headlineSmall = TextStyle(
+        fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.SemiBold,
         fontSize = 20.sp,
         lineHeight = 26.sp,
-        letterSpacing = (-0.3).sp,
+        letterSpacing = 0.sp,
+    ),
+    titleLarge = TextStyle(
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 20.sp,
+        lineHeight = 26.sp,
+        letterSpacing = 0.sp,
     ),
     titleMedium = TextStyle(
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.Medium,
         fontSize = 16.sp,
         lineHeight = 22.sp,
-        letterSpacing = (-0.1).sp,
+        letterSpacing = 0.sp,
     ),
     titleSmall = TextStyle(
         fontWeight = FontWeight.Medium,

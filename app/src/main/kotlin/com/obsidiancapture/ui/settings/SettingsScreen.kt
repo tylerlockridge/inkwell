@@ -51,12 +51,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.obsidiancapture.BuildConfig
 import com.obsidiancapture.auth.BiometricAuthManager
 
-/**
- * Google Cloud web client ID for token verification.
- * This must match the web client ID configured on the server in config.yaml.
- * From the same GCloud project (765700506610) used for GCal OAuth.
- */
-private const val GOOGLE_WEB_CLIENT_ID = "765700506610-fe91rq42adiv4esgks24djdfb0k5bghh.apps.googleusercontent.com"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -154,9 +148,6 @@ fun SettingsScreen(
                 onToggleTokenVisibility = viewModel::onToggleTokenVisibility,
                 onTestConnection = viewModel::onTestConnection,
                 onDisconnect = viewModel::onDisconnect,
-                onGoogleSignIn = { ctx ->
-                    viewModel.onGoogleSignIn(ctx, GOOGLE_WEB_CLIENT_ID)
-                },
             )
 
             // Sync Settings

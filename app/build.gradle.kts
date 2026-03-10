@@ -28,8 +28,9 @@ android {
 
         testInstrumentationRunner = "com.obsidiancapture.HiltTestRunner"
 
-        // DEFAULT_AUTH_TOKEN removed — baking tokens into the APK is a security risk.
-        // Auth token is configured by the user at runtime via Settings → Sign In.
+        // Personal app — bake in defaults so the app works on install without any setup.
+        val defaultAuthToken = System.getenv("CAPTURE_AUTH_TOKEN") ?: localProps.getProperty("CAPTURE_AUTH_TOKEN") ?: ""
+        buildConfigField("String", "DEFAULT_AUTH_TOKEN", "\"$defaultAuthToken\"")
     }
 
     signingConfigs {
@@ -144,6 +145,9 @@ dependencies {
     // DataStore
     implementation(libs.datastore.preferences)
 
+    // Coil (image loading)
+    implementation(libs.coil.compose)
+
     // UI extras
     implementation(libs.lottie.compose)
     implementation(libs.biometric)
@@ -169,6 +173,7 @@ dependencies {
     testImplementation(libs.coroutines.test)
     testImplementation(libs.mockk)
     testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
     testImplementation(libs.turbine)
     testImplementation(libs.workmanager.testing)
     androidTestImplementation(libs.compose.test.junit4)

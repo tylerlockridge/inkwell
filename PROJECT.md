@@ -16,13 +16,22 @@ ralphRuns: 1
 Android app for capturing notes/tasks directly to an Obsidian vault inbox via a REST API.
 Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcean droplet.
 
-<!-- QUICK-RESUME-UPDATED: 2026-03-06 -->
+<!-- QUICK-RESUME-UPDATED: 2026-03-10 -->
 ## Quick Resume
-**Last Active:** 2026-03-06
-**Current Phase:** Capture type toggle complete; needs APK build + install
-**Current Task:** Capture type toggle (Task/Note/List) merged to master
-**Blockers:** None — build APK and install on phone
-**Next Action:** Build signed APK, install on phone, test Note and List captures end-to-end.
+**Last Active:** 2026-03-10
+**Current Phase:** Stable — auth fixed, UI polished
+**Current Task:** Done
+**Blockers:** None
+**Next Action:** Test Task/Note/List capture types end-to-end on device, then next feature
+
+### Session 2026-03-10 — Auth fix + UI polish
+- ✅ Google Sign-In removed — token baked into `BuildConfig.DEFAULT_AUTH_TOKEN` from `local.properties`
+- ✅ `GoogleSignInManager.kt` deleted; `SettingsViewModel`, `ConnectionCard`, `SettingsUiState` cleaned up
+- ✅ Server `/api/auth/google` response fixed: `{success:true}` → `{token:...}` (both server + Android)
+- ✅ SSH hook: allows `138.197.81.173`, blocks all other SSH — documented in global CLAUDE.md + MEMORY.md
+- ✅ UI: `FontFamily.Serif` on all headline/title styles — editorial journal feel across all screens
+- ✅ UI: Inbox empty state — Obsidian diamond focal point with amber glow ring, serif headline
+- ✅ UI: Bottom nav selected item renders in amber with warm indicator pill
 
 ### Session 2026-03-06 — Capture Type Toggle (Ralph Loop)
 - All 5 stories passed (US-001 through US-005)

@@ -1,6 +1,7 @@
 package com.obsidiancapture.ui.inbox
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -67,6 +68,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -77,6 +81,7 @@ import com.obsidiancapture.ui.theme.StatusSynced
 import com.obsidiancapture.ui.theme.TagDefault
 import com.obsidiancapture.ui.theme.TagFamily
 import com.obsidiancapture.ui.theme.TagFinance
+import com.obsidiancapture.ui.theme.AmberGlow
 import com.obsidiancapture.ui.theme.TagHealth
 import com.obsidiancapture.ui.theme.TagPersonal
 import com.obsidiancapture.ui.theme.TagWork
@@ -247,63 +252,13 @@ fun InboxScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 if (state.notes.isEmpty()) {
-                    // Polished empty state
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            val emptyIcon = when {
-                                !state.isServerConfigured -> Icons.Outlined.CloudOff
-                                state.selectedTab == InboxTab.Pending -> Icons.Outlined.CloudDone
-                                else -> Icons.Outlined.Inbox
-                            }
-                            Icon(
-                                emptyIcon,
-                                contentDescription = null,
-                                modifier = Modifier.size(80.dp),
-                                tint = MaterialTheme.colorScheme.outlineVariant,
-                            )
-                            Spacer(Modifier.height(24.dp))
-                            Text(
-                                text = when {
-                                    state.isSearchActive -> "No results found"
-                                    !state.isServerConfigured -> "Not connected"
-                                    state.selectedTab == InboxTab.Pending -> "All synced up"
-                                    else -> "All clear!"
-                                },
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                text = when {
-                                    state.isSearchActive -> "Try a different search term."
-                                    !state.isServerConfigured -> "Sign in with Google in Settings to see your inbox."
-                                    state.selectedTab == InboxTab.Pending -> "Nothing pending sync."
-                                    else -> "Tap + to capture a thought."
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.outline,
-                            )
-                            Spacer(Modifier.height(16.dp))
-                            // Action button for empty states
-                            when {
-                                !state.isServerConfigured -> {
-                                    FilledTonalButton(onClick = onNavigateToSettings) {
-                                        Text("Sign in")
-                                    }
-                                }
-                                !state.isSearchActive && state.selectedTab != InboxTab.Pending -> {
-                                    FilledTonalButton(onClick = onNavigateToCapture) {
-                                        Text("Capture something")
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    InboxEmptyState(
+                        isServerConfigured = state.isServerConfigured,
+                        isSearchActive = state.isSearchActive,
+                        isPendingTab = state.selectedTab == InboxTab.Pending,
+                        onNavigateToCapture = onNavigateToCapture,
+                        onNavigateToSettings = onNavigateToSettings,
+                    )
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -550,5 +505,97 @@ private fun formatRelativeTime(isoTimestamp: String): String {
         }
     } catch (_: Exception) {
         isoTimestamp
+    }
+}
+
+@Composable
+private fun InboxEmptyState(
+    isServerConfigured: Boolean,
+    isSearchActive: Boolean,
+    isPendingTab: Boolean,
+    onNavigateToCapture: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+) {
+    val amber = MaterialTheme.colorScheme.primary
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(0.dp),
+        ) {
+            // Ambient glow + icon focal point
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(120.dp),
+            ) {
+                // Outer glow ring
+                Canvas(modifier = Modifier.size(120.dp)) {
+                    drawCircle(color = AmberGlow, radius = size.minDimension / 2f)
+                }
+                // Inner diamond — Obsidian-inspired
+                Canvas(modifier = Modifier.size(52.dp)) {
+                    val cx = size.width / 2f
+                    val cy = size.height / 2f
+                    val rx = size.width * 0.48f
+                    val ry = size.height * 0.48f
+                    val diamond = Path().apply {
+                        moveTo(cx, cy - ry)
+                        lineTo(cx + rx, cy)
+                        lineTo(cx, cy + ry)
+                        lineTo(cx - rx, cy)
+                        close()
+                    }
+                    drawPath(diamond, color = amber.copy(alpha = 0.18f))
+                    drawPath(diamond, color = amber.copy(alpha = 0.7f), style = Stroke(width = 1.8.dp.toPx()))
+                    // Inner highlight line
+                    drawLine(
+                        color = amber.copy(alpha = 0.4f),
+                        start = Offset(cx, cy - ry * 0.6f),
+                        end = Offset(cx + rx * 0.6f, cy),
+                        strokeWidth = 1.dp.toPx(),
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            Text(
+                text = when {
+                    isSearchActive -> "No results"
+                    !isServerConfigured -> "Not connected"
+                    isPendingTab -> "All synced"
+                    else -> "All clear"
+                },
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+
+            Spacer(Modifier.height(6.dp))
+
+            Text(
+                text = when {
+                    isSearchActive -> "Try a different search term."
+                    !isServerConfigured -> "Configure your server in Settings."
+                    isPendingTab -> "Nothing waiting to sync."
+                    else -> "Tap  +  to capture a thought."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            when {
+                !isServerConfigured -> FilledTonalButton(onClick = onNavigateToSettings) {
+                    Text("Open Settings")
+                }
+                !isSearchActive && !isPendingTab -> FilledTonalButton(onClick = onNavigateToCapture) {
+                    Text("Capture something")
+                }
+            }
+        }
     }
 }

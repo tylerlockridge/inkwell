@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.AlertDialog
@@ -27,6 +28,8 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -61,11 +64,16 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.obsidiancapture.R
+import com.obsidiancapture.data.coach.CoachMarkKey
+import com.obsidiancapture.ui.components.AttachmentPreview
+import com.obsidiancapture.ui.components.CoachMark
+import com.obsidiancapture.ui.components.rememberAttachmentPickerState
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -82,6 +90,11 @@ fun CaptureScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val focusRequester = remember { FocusRequester() }
+    val context = LocalContext.current
+    var showAttachMenu by remember { mutableStateOf(false) }
+    val attachmentPickerState = rememberAttachmentPickerState { uris ->
+        viewModel.onAttachmentsAdded(uris)
+    }
 
     // Pre-fill from share intent (one-time)
     LaunchedEffect(sharedText, sharedTitle) {
@@ -198,14 +211,84 @@ fun CaptureScreen(
                                 CaptureType.TASK -> "Task"
                                 CaptureType.NOTE -> "Note"
                                 CaptureType.LIST -> "List"
+                                CaptureType.IDEA -> "Idea"
                             },
                         )
                     }
                 }
             }
 
+            // Coach mark: type toggle (shown until dismissed)
+            if (state.showTypeToggleCoachMark) {
+                CoachMark(
+                    title = "Switch capture types",
+                    body = "Task, Note, List, or Idea — each routes to a different folder.",
+                    onDismiss = { viewModel.dismissCoachMark(CoachMarkKey.TYPE_TOGGLE) },
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                )
+            }
+
+            // Attachment button row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box {
+                    IconButton(onClick = { showAttachMenu = true }) {
+                        Icon(Icons.Default.AttachFile, contentDescription = "Attach file")
+                    }
+                    DropdownMenu(
+                        expanded = showAttachMenu,
+                        onDismissRequest = { showAttachMenu = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Gallery") },
+                            onClick = {
+                                showAttachMenu = false
+                                attachmentPickerState.launchGallery()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Camera") },
+                            onClick = {
+                                showAttachMenu = false
+                                attachmentPickerState.launchCamera(context)
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Documents") },
+                            onClick = {
+                                showAttachMenu = false
+                                attachmentPickerState.launchDocuments()
+                            },
+                        )
+                    }
+                }
+            }
+
+            // Coach mark: attachment button
+            if (state.showAttachmentCoachMark) {
+                CoachMark(
+                    title = "Attach files",
+                    body = "Add photos, camera shots, or documents to your capture.",
+                    onDismiss = { viewModel.dismissCoachMark(CoachMarkKey.ATTACHMENT_BUTTON) },
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                )
+            }
+
+            // Attachment previews
+            if (state.selectedAttachments.isNotEmpty()) {
+                AttachmentPreview(
+                    attachments = state.selectedAttachments,
+                    onRemove = viewModel::onAttachmentRemoved,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                )
+            }
+
             when (state.captureType) {
-                CaptureType.TASK, CaptureType.NOTE -> {
+                CaptureType.TASK, CaptureType.NOTE, CaptureType.IDEA -> {
                     // Writing surface — card with ghost watermark behind transparent TextField
                     Box(
                         modifier = Modifier
@@ -241,7 +324,11 @@ fun CaptureScreen(
                                     )
                                     Spacer(Modifier.height(6.dp))
                                     Text(
-                                        text = if (state.captureType == CaptureType.NOTE) "Write your note..." else "What's on your mind?",
+                                        text = when (state.captureType) {
+                                            CaptureType.NOTE -> "Write your note..."
+                                            CaptureType.IDEA -> "Capture your idea..."
+                                            else -> "What's on your mind?"
+                                        },
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                                     )
@@ -258,6 +345,15 @@ fun CaptureScreen(
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
                             ),
+                        )
+                    }
+                    // Coach mark: brainstorming mode (shown when IDEA is selected and not yet dismissed)
+                    if (state.captureType == CaptureType.IDEA && state.showIdeaTypeCoachMark) {
+                        CoachMark(
+                            title = "Brainstorming mode",
+                            body = "Ideas route to your Brainstorming folder automatically.",
+                            onDismiss = { viewModel.dismissCoachMark(CoachMarkKey.IDEA_TYPE) },
+                            modifier = Modifier.padding(horizontal = 12.dp),
                         )
                     }
                 }

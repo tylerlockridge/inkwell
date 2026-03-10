@@ -4,7 +4,6 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.obsidiancapture.auth.GoogleSignInManager
 import com.obsidiancapture.data.local.PreferencesManager
 import com.obsidiancapture.data.local.dao.NoteDao
 import com.obsidiancapture.data.remote.CaptureApiService
@@ -26,7 +25,6 @@ class SettingsViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager,
     private val apiService: CaptureApiService,
     private val syncScheduler: SyncScheduler,
-    private val googleSignInManager: GoogleSignInManager,
     private val noteDao: NoteDao,
 ) : ViewModel() {
 
@@ -88,7 +86,6 @@ class SettingsViewModel @Inject constructor(
                 it.copy(
                     authToken = "",
                     connectionStatus = ConnectionStatus.Unknown,
-                    googleSignInEmail = null,
                     snackbarMessage = "Disconnected",
                 )
             }
@@ -153,77 +150,6 @@ class SettingsViewModel @Inject constructor(
     fun onTriggerSync() {
         syncScheduler.triggerImmediateSync()
         _uiState.update { it.copy(snackbarMessage = "Sync triggered") }
-    }
-
-    fun onGoogleSignIn(activityContext: android.content.Context, webClientId: String) {
-        _uiState.update { it.copy(isGoogleSignInLoading = true) }
-
-        viewModelScope.launch {
-            val serverUrl = _uiState.value.serverUrl
-            if (serverUrl.isBlank()) {
-                _uiState.update {
-                    it.copy(isGoogleSignInLoading = false, snackbarMessage = "Enter a server URL first")
-                }
-                return@launch
-            }
-
-            // Step 1: Get Google ID token from Credential Manager
-            val idTokenResult = googleSignInManager.signIn(activityContext, webClientId)
-            if (idTokenResult.isFailure) {
-                val msg = idTokenResult.exceptionOrNull()?.message ?: "Sign-in failed"
-                _uiState.update {
-                    it.copy(isGoogleSignInLoading = false, snackbarMessage = msg)
-                }
-                return@launch
-            }
-
-            val idToken = idTokenResult.getOrThrow()
-            // Extract email from JWT payload before exchanging the token
-            val email = extractEmailFromJwt(idToken)
-
-            // Step 2: Exchange ID token for app auth token
-            val exchangeResult = apiService.exchangeGoogleToken(serverUrl, idToken)
-            if (exchangeResult.isFailure) {
-                val msg = exchangeResult.exceptionOrNull()?.message ?: "Token exchange failed"
-                _uiState.update {
-                    it.copy(isGoogleSignInLoading = false, snackbarMessage = msg)
-                }
-                return@launch
-            }
-
-            val appToken = exchangeResult.getOrThrow()
-
-            // Step 3: Save token and update UI
-            preferencesManager.setAuthToken(appToken)
-            _uiState.update {
-                it.copy(
-                    authToken = appToken,
-                    isGoogleSignInLoading = false,
-                    googleSignInEmail = email,
-                    snackbarMessage = if (email != null) "Signed in as $email" else "Signed in successfully",
-                    connectionStatus = ConnectionStatus.Unknown,
-                )
-            }
-
-            // Step 4: Auto-test connection with the new token
-            onTestConnection()
-        }
-    }
-
-    /**
-     * Decode the JWT payload (middle segment) and extract the `email` claim.
-     * No signature verification needed — the server already validates the token.
-     */
-    private fun extractEmailFromJwt(idToken: String): String? {
-        return try {
-            val payload = idToken.split(".").getOrNull(1) ?: return null
-            val padded = payload + "=".repeat((4 - payload.length % 4) % 4)
-            val decoded = android.util.Base64.decode(padded, android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP)
-            val json = String(decoded, Charsets.UTF_8)
-            Regex(""""email"\s*:\s*"([^"]+)"""").find(json)?.groupValues?.getOrNull(1)
-        } catch (_: Exception) {
-            null
-        }
     }
 
     // --- Export ---

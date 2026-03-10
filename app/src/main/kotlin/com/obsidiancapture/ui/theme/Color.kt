@@ -64,6 +64,9 @@ val md_theme_dark_surfaceContainer = Color(0xFF22201A)
 val md_theme_dark_surfaceContainerHigh = Color(0xFF2C2922)
 val md_theme_dark_surfaceContainerHighest = Color(0xFF36332C)
 
+// Ambient glow for empty state focal point
+val AmberGlow = Color(0x26C8954A)   // Amber at 15% — warm halo effect
+
 // Semantic status colors (use directly, not via color scheme)
 val StatusSynced = Color(0xFF4CAF50)
 val StatusPending = Color(0xFFFFB300)

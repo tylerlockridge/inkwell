@@ -10,7 +10,7 @@ import com.obsidiancapture.data.local.entity.NoteFtsEntity
 
 @Database(
     entities = [NoteEntity::class, NoteFtsEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -72,6 +72,12 @@ abstract class AppDatabase : RoomDatabase() {
                     END
                     """,
                 )
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE notes ADD COLUMN attachment_uris TEXT DEFAULT NULL")
             }
         }
     }

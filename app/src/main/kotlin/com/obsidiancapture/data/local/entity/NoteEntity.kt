@@ -37,6 +37,7 @@ data class NoteEntity(
     @ColumnInfo(name = "pending_sync") val pendingSync: Boolean = false,
     @ColumnInfo(name = "client_uuid") val clientUuid: String? = null,
     @ColumnInfo(name = "sync_error") val syncError: String? = null,
+    @ColumnInfo(name = "attachment_uris") val attachmentUris: String? = null,
 ) {
     companion object {
         private val tagJson = Json { ignoreUnknownKeys = true }

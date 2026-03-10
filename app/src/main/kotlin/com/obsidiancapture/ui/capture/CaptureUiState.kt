@@ -1,6 +1,8 @@
 package com.obsidiancapture.ui.capture
 
-enum class CaptureType { TASK, NOTE, LIST }
+import android.net.Uri
+
+enum class CaptureType { TASK, NOTE, LIST, IDEA }
 
 data class CaptureUiState(
     val unifiedText: String = "",
@@ -25,9 +27,13 @@ data class CaptureUiState(
     val listName: String = "",
     val listItems: String = "",
     val persistent: Boolean = false,
+    val selectedAttachments: List<Uri> = emptyList(),
+    val showTypeToggleCoachMark: Boolean = false,
+    val showIdeaTypeCoachMark: Boolean = false,
+    val showAttachmentCoachMark: Boolean = false,
 ) {
     val isValid: Boolean get() = when (captureType) {
-        CaptureType.TASK, CaptureType.NOTE -> unifiedText.isNotBlank()
+        CaptureType.TASK, CaptureType.NOTE, CaptureType.IDEA -> unifiedText.isNotBlank()
         CaptureType.LIST -> listName.isNotBlank() && listItems.isNotBlank()
     }
 
