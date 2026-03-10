@@ -19,10 +19,18 @@ Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcea
 <!-- QUICK-RESUME-UPDATED: 2026-03-10 -->
 ## Quick Resume
 **Last Active:** 2026-03-10
-**Current Phase:** Stable — auth fixed, UI polished
-**Current Task:** Done
+**Current Phase:** Stable — IDEA type + attachments + coach marks shipped
+**Current Task:** Done (commit 75baec0)
 **Blockers:** None
-**Next Action:** Test Task/Note/List capture types end-to-end on device, then next feature
+**Next Action:** Install on device and test: (1) IDEA capture type, (2) attachment picker (gallery/camera/docs), (3) coach marks dismiss/persist. Then: attachment upload to server (phase 2 — needs server-side multipart endpoint).
+
+### Session 2026-03-10 — IDEA type, attachment picker, coach marks (autonomous)
+- ✅ Fixed `AttachmentPicker` camera URI state bug: `var cameraImageUri` → `remember { mutableStateOf<Uri?>(null) }` — survives recompositions properly
+- ✅ Fixed lint error: added `<uses-feature android:name="android.hardware.camera" android:required="false" />` to manifest
+- ✅ Fixed `CoachMarkManagerTest` compile error: added `testImplementation(libs.androidx.test.core)` + `androidx-test-core` to libs.versions.toml
+- ✅ Quality gates: 294 unit tests passing, lint clean
+- ✅ Committed: 31 files, 965 insertions (commit 75baec0)
+- ⚠️ Attachment upload is local-only (phase 1): URIs stored in NoteEntity.attachmentUris as JSON, NOT sent to server. Server-side multipart endpoint needed for phase 2.
 
 ### Session 2026-03-10 — Auth fix + UI polish
 - ✅ Google Sign-In removed — token baked into `BuildConfig.DEFAULT_AUTH_TOKEN` from `local.properties`
