@@ -6,7 +6,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.test.espresso.Espresso
+import androidx.test.rule.GrantPermissionRule
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
@@ -21,15 +21,23 @@ import org.junit.Test
 class InboxScreenTest {
 
     @get:Rule(order = 0)
-    val hiltRule = HiltAndroidRule(this)
+    val permissionsRule: GrantPermissionRule = GrantPermissionRule.grant(
+        android.Manifest.permission.POST_NOTIFICATIONS,
+        android.Manifest.permission.READ_MEDIA_IMAGES,
+        android.Manifest.permission.READ_MEDIA_VIDEO,
+        android.Manifest.permission.CAMERA,
+    )
 
     @get:Rule(order = 1)
+    val hiltRule = HiltAndroidRule(this)
+
+    @get:Rule(order = 2)
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Before
     fun setUp() {
         hiltRule.inject()
-        Espresso.closeSoftKeyboard()
+        composeRule.waitForIdle()
         // Navigate to the Inbox tab (match by nav label text)
         composeRule.onNodeWithText("Inbox", useUnmergedTree = true).performClick()
     }
