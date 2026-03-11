@@ -22,12 +22,21 @@ Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcea
 **Current Phase:** Stable — IDEA type + attachments + coach marks shipped and tested
 **Current Task:** Done (commit d1b51a0)
 **Blockers:** None
-**Next Action:** Build a release APK and do manual QA — test attachment capture end-to-end: pick a photo, save, let UploadWorker sync, then check the vault on the droplet for the .md file + Attachments/ folder. Also verify SyncWorker reads attachment filenames back from the server on next sync.
+**Next Action:** Install v2.3.0 APK on phone (`app/build/outputs/apk/release/app-release.apk`) and manually test: (1) pick a photo, save capture, wait for sync, check vault. Server-side multipart confirmed working via smoke test (201 response, correct file at `/vault/Attachments/{uid}/test.png`, `attachments:` frontmatter + `![[test.png]]` in markdown).
 
 **⚠️ Known test gotcha (Android 16):**
 - Always uninstall release APK before running `connectedAndroidTest` (signature mismatch)
 - `Espresso.closeSoftKeyboard()` deadlocks on Android 16 — use `composeRule.waitForIdle()` instead
 - Runtime permissions must be pre-granted via `GrantPermissionRule` (camera, media, notifications)
+
+### Session 2026-03-10 — v2.3.0 release prep + server smoke test
+- ✅ Bumped versionCode 10→11, versionName 2.2.0→2.3.0 (commit 37a994d)
+- ✅ Built release APK: `app/build/outputs/apk/release/app-release.apk` (4.8MB)
+- ✅ Server multipart smoke test confirmed:
+  - `POST /api/capture` multipart → `201 Created`
+  - File saved at `/vault/Attachments/{uid}/test.png`
+  - Markdown has `attachments: [test.png]` frontmatter + `![[test.png]]` wikilink
+- ⚠️ Phone disconnected — APK not yet installed. Use: `adb install -r app/build/outputs/apk/release/app-release.apk`
 
 ### Session 2026-03-10 — Attachment upload wired end-to-end
 - ✅ `NoteEntity.attachmentsFromJson()` helper added
