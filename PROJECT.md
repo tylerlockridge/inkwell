@@ -19,10 +19,10 @@ Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcea
 <!-- QUICK-RESUME-UPDATED: 2026-03-10 -->
 ## Quick Resume
 **Last Active:** 2026-03-10
-**Current Phase:** Stable — IDEA type + attachments + coach marks shipped and tested
-**Current Task:** Done (commit d1b51a0)
+**Current Phase:** Stable — v2.3.0 built, attachment upload fully wired
+**Current Task:** Done (commit 191ba7d)
 **Blockers:** None
-**Next Action:** Install v2.3.0 APK on phone (`app/build/outputs/apk/release/app-release.apk`) and manually test: (1) pick a photo, save capture, wait for sync, check vault. Server-side multipart confirmed working via smoke test (201 response, correct file at `/vault/Attachments/{uid}/test.png`, `attachments:` frontmatter + `![[test.png]]` in markdown).
+**Next Action:** (1) `adb install -r app/build/outputs/apk/release/app-release.apk` — APK is built and ready. (2) Manual QA: pick a photo, save capture, wait for UploadWorker sync, verify vault has `.md` + `Attachments/{uid}/` folder. (3) Future: SyncWorker should read `attachments` from server NoteDetailResponse back into local DB so inbox shows attachment count correctly.
 
 **⚠️ Known test gotcha (Android 16):**
 - Always uninstall release APK before running `connectedAndroidTest` (signature mismatch)
