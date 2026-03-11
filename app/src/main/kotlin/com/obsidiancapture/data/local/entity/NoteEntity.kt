@@ -58,5 +58,15 @@ data class NoteEntity(
                 emptyList()
             }
         }
+
+        /** Decode a JSON string to attachment URI list */
+        fun attachmentsFromJson(json: String?): List<String> {
+            if (json.isNullOrBlank() || json == "[]") return emptyList()
+            return try {
+                tagJson.decodeFromString(tagSerializer, json)
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
     }
 }

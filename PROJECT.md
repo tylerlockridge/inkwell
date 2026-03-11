@@ -19,10 +19,15 @@ Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcea
 <!-- QUICK-RESUME-UPDATED: 2026-03-10 -->
 ## Quick Resume
 **Last Active:** 2026-03-10
-**Current Phase:** Stable — IDEA type + attachments + coach marks shipped
-**Current Task:** Done (commit 75baec0)
+**Current Phase:** Stable — IDEA type + attachments + coach marks shipped and tested
+**Current Task:** Done (commit d1b51a0)
 **Blockers:** None
-**Next Action:** Install release APK on phone and run instrumented tests. APK is already built at `app/build/outputs/apk/release/app-release.apk`. Steps: (1) plug in phone, (2) `adb install -r app/build/outputs/apk/release/app-release.apk`, (3) `./gradlew connectedAndroidTest`, (4) manually test IDEA type, attachment picker, coach marks.
+**Next Action:** Phase 2 — server-side multipart attachment upload endpoint. Attachment URIs are stored locally (NoteEntity.attachmentUris) but never sent to server. Need: (1) `POST /api/inbox/attachments` multipart endpoint on server, (2) update UploadWorker to send attachment URIs as files.
+
+**⚠️ Known test gotcha (Android 16):**
+- Always uninstall release APK before running `connectedAndroidTest` (signature mismatch)
+- `Espresso.closeSoftKeyboard()` deadlocks on Android 16 — use `composeRule.waitForIdle()` instead
+- Runtime permissions must be pre-granted via `GrantPermissionRule` (camera, media, notifications)
 
 ### Session 2026-03-10 — IDEA type, attachment picker, coach marks (autonomous)
 - ✅ Fixed `AttachmentPicker` camera URI state bug: `var cameraImageUri` → `remember { mutableStateOf<Uri?>(null) }` — survives recompositions properly

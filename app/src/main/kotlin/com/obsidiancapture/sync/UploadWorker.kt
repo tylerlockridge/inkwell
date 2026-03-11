@@ -96,6 +96,7 @@ class UploadWorker @AssistedInject constructor(
 
     private suspend fun uploadNewCapture(serverUrl: String, note: NoteEntity) {
         val tags = NoteEntity.tagsFromJson(note.tags)
+        val attachmentUris = NoteEntity.attachmentsFromJson(note.attachmentUris)
         val request = CaptureRequest(
             body = note.body,
             title = note.title.ifBlank { null },
@@ -110,7 +111,14 @@ class UploadWorker @AssistedInject constructor(
             uuid = note.clientUuid,
         )
 
-        val response = apiService.capture(serverUrl, request)
+        val response = if (attachmentUris.isNotEmpty()) {
+            apiService.captureWithAttachments(
+                serverUrl, request, attachmentUris,
+                applicationContext.contentResolver,
+            )
+        } else {
+            apiService.capture(serverUrl, request)
+        }
         val now = java.time.Instant.now().toString()
 
         // Atomically delete the pending_ row and insert the server-assigned row.

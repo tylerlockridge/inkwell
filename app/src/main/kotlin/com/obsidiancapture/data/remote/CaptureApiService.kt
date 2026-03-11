@@ -1,5 +1,8 @@
 package com.obsidiancapture.data.remote
 
+import android.content.ContentResolver
+import android.net.Uri
+import android.provider.OpenableColumns
 import com.obsidiancapture.data.remote.dto.CaptureDefaultsResponse
 import com.obsidiancapture.data.remote.dto.CaptureRequest
 import com.obsidiancapture.data.remote.dto.CaptureResponse
@@ -20,12 +23,17 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.request.forms.formData
+import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.plugins.timeout
 import io.ktor.http.ContentType
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import com.obsidiancapture.BuildConfig
 import kotlinx.serialization.json.Json
@@ -43,6 +51,54 @@ class CaptureApiService @Inject constructor(
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()
+    }
+
+    /**
+     * Upload a capture with file attachments as multipart/form-data.
+     * The server's capture endpoint accepts both JSON and multipart — this path is used
+     * when the note has one or more local content URIs to attach.
+     */
+    suspend fun captureWithAttachments(
+        baseUrl: String,
+        request: CaptureRequest,
+        attachmentUris: List<String>,
+        contentResolver: ContentResolver,
+    ): CaptureResponse {
+        return httpClient.submitFormWithBinaryData(
+            url = "$baseUrl/api/capture",
+            formData = formData {
+                append("body", request.body)
+                request.title?.let { append("title", it) }
+                request.tags?.takeIf { it.isNotEmpty() }?.let { append("tags", it.joinToString(",")) }
+                request.kind?.let { append("kind", it) }
+                request.date?.let { append("date", it) }
+                request.priority?.let { append("priority", it) }
+                append("source", request.source)
+                request.uuid?.let { append("uuid", it) }
+                request.captureType?.let { append("captureType", it) }
+
+                for (uriString in attachmentUris) {
+                    val uri = Uri.parse(uriString) ?: continue
+                    val mimeType = contentResolver.getType(uri) ?: "application/octet-stream"
+                    val filename = resolveFilename(uri, contentResolver)
+                    val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: continue
+                    append(filename, bytes, Headers.build {
+                        append(HttpHeaders.ContentType, mimeType)
+                        append(HttpHeaders.ContentDisposition, "filename=\"$filename\"")
+                    })
+                }
+            },
+        ) {
+            timeout { requestTimeoutMillis = 120_000L; socketTimeoutMillis = 120_000L }
+        }.body()
+    }
+
+    private fun resolveFilename(uri: Uri, contentResolver: ContentResolver): String {
+        return contentResolver.query(
+            uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null,
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) cursor.getString(0) else null
+        } ?: uri.lastPathSegment ?: "attachment"
     }
 
     suspend fun getInbox(
