@@ -22,7 +22,7 @@ Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcea
 **Current Phase:** Stable — IDEA type + attachments + coach marks shipped
 **Current Task:** Done (commit 75baec0)
 **Blockers:** None
-**Next Action:** Install on device and test: (1) IDEA capture type, (2) attachment picker (gallery/camera/docs), (3) coach marks dismiss/persist. Then: attachment upload to server (phase 2 — needs server-side multipart endpoint).
+**Next Action:** Install release APK on phone and run instrumented tests. APK is already built at `app/build/outputs/apk/release/app-release.apk`. Steps: (1) plug in phone, (2) `adb install -r app/build/outputs/apk/release/app-release.apk`, (3) `./gradlew connectedAndroidTest`, (4) manually test IDEA type, attachment picker, coach marks.
 
 ### Session 2026-03-10 — IDEA type, attachment picker, coach marks (autonomous)
 - ✅ Fixed `AttachmentPicker` camera URI state bug: `var cameraImageUri` → `remember { mutableStateOf<Uri?>(null) }` — survives recompositions properly
@@ -31,6 +31,8 @@ Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcea
 - ✅ Quality gates: 294 unit tests passing, lint clean
 - ✅ Committed: 31 files, 965 insertions (commit 75baec0)
 - ⚠️ Attachment upload is local-only (phase 1): URIs stored in NoteEntity.attachmentUris as JSON, NOT sent to server. Server-side multipart endpoint needed for phase 2.
+- ✅ Release APK built: `app/build/outputs/apk/release/app-release.apk` (ready to install)
+- ⚠️ Install blocked this session: Windows Defender locks build intermediates during Gradle builds. Workaround: delete `app/build/intermediates` and `app/build/outputs/apk/release` mid-build, then rerun `./gradlew packageRelease`. Phone also dropped USB mid-session.
 
 ### Session 2026-03-10 — Auth fix + UI polish
 - ✅ Google Sign-In removed — token baked into `BuildConfig.DEFAULT_AUTH_TOKEN` from `local.properties`
