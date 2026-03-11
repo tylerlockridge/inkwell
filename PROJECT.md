@@ -22,12 +22,28 @@ Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcea
 **Current Phase:** Stable — IDEA type + attachments + coach marks shipped and tested
 **Current Task:** Done (commit d1b51a0)
 **Blockers:** None
-**Next Action:** Phase 2 — server-side multipart attachment upload endpoint. Attachment URIs are stored locally (NoteEntity.attachmentUris) but never sent to server. Need: (1) `POST /api/inbox/attachments` multipart endpoint on server, (2) update UploadWorker to send attachment URIs as files.
+**Next Action:** Build a release APK and do manual QA — test attachment capture end-to-end: pick a photo, save, let UploadWorker sync, then check the vault on the droplet for the .md file + Attachments/ folder. Also verify SyncWorker reads attachment filenames back from the server on next sync.
 
 **⚠️ Known test gotcha (Android 16):**
 - Always uninstall release APK before running `connectedAndroidTest` (signature mismatch)
 - `Espresso.closeSoftKeyboard()` deadlocks on Android 16 — use `composeRule.waitForIdle()` instead
 - Runtime permissions must be pre-granted via `GrantPermissionRule` (camera, media, notifications)
+
+### Session 2026-03-10 — Attachment upload wired end-to-end
+- ✅ `NoteEntity.attachmentsFromJson()` helper added
+- ✅ `CaptureApiService.captureWithAttachments()` — sends multipart/form-data to existing server endpoint
+  - Reads URI bytes via ContentResolver, resolves display filenames via OpenableColumns
+  - Tags sent as comma-separated string (server multipart format)
+  - 120s timeout for file uploads
+- ✅ `UploadWorker.uploadNewCapture()` — routes to multipart path when attachmentUris non-empty
+- ✅ No server changes needed (capture-server.ts already handles multipart on POST /api/capture)
+- ✅ All 294 unit tests passing, lint clean (commit c2634a2)
+
+### Session 2026-03-10 — Instrumented test fixes (Android 16)
+- ✅ Added GrantPermissionRule to all 3 test classes (camera/media/notifications)
+- ✅ Added androidx.test:rules dep
+- ✅ Replaced Espresso.closeSoftKeyboard() with composeRule.waitForIdle() in Inbox/SettingsScreenTest
+- ✅ 17/17 instrumented tests passing (commit d1b51a0)
 
 ### Session 2026-03-10 — IDEA type, attachment picker, coach marks (autonomous)
 - ✅ Fixed `AttachmentPicker` camera URI state bug: `var cameraImageUri` → `remember { mutableStateOf<Uri?>(null) }` — survives recompositions properly
