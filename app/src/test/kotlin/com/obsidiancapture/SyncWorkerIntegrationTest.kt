@@ -10,6 +10,7 @@ import com.obsidiancapture.data.remote.dto.InboxItem
 import com.obsidiancapture.data.remote.dto.InboxResponse
 import com.obsidiancapture.data.remote.dto.NoteDetailResponse
 import com.obsidiancapture.data.remote.dto.NoteFrontmatter
+import com.obsidiancapture.sync.InboxSyncEngine
 import com.obsidiancapture.sync.SyncWorker
 import io.mockk.CapturingSlot
 import io.mockk.coEvery
@@ -35,6 +36,7 @@ class SyncWorkerIntegrationTest {
     private lateinit var noteDao: NoteDao
     private lateinit var apiService: CaptureApiService
     private lateinit var preferencesManager: PreferencesManager
+    private lateinit var syncEngine: InboxSyncEngine
     private lateinit var workerParams: WorkerParameters
 
     @Before
@@ -56,12 +58,16 @@ class SyncWorkerIntegrationTest {
         every { noteDao.getPendingSyncCount() } returns flowOf(0)
         coEvery { noteDao.getAllByUids(any()) } returns emptyList()
 
+        syncEngine = InboxSyncEngine(noteDao, apiService, preferencesManager)
+
+        every { noteDao.getInboxNotesCount() } returns flowOf(0)
+
         mockkObject(com.obsidiancapture.widget.WidgetStateUpdater)
         coEvery { com.obsidiancapture.widget.WidgetStateUpdater.updateCounts(any(), any(), any()) } returns Unit
     }
 
     private fun buildWorker(): SyncWorker {
-        return SyncWorker(context, workerParams, noteDao, apiService, preferencesManager)
+        return SyncWorker(context, workerParams, noteDao, preferencesManager, syncEngine)
     }
 
     private fun makeInboxItem(uid: String, updatedAt: String = "2026-02-08T12:00:00Z") = InboxItem(
@@ -115,7 +121,7 @@ class SyncWorkerIntegrationTest {
 
         val result = buildWorker().doWork()
         assertEquals(Result.success(), result)
-        coVerify(exactly = 3) { noteDao.upsert(any()) }
+        coVerify { noteDao.upsertAll(match { it.size == 3 }) }
     }
 
     @Test

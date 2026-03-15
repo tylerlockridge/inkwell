@@ -80,7 +80,8 @@ class CaptureApiService @Inject constructor(
                 for (uriString in attachmentUris) {
                     val uri = Uri.parse(uriString) ?: continue
                     val mimeType = contentResolver.getType(uri) ?: "application/octet-stream"
-                    val filename = resolveFilename(uri, contentResolver)
+                    val rawFilename = resolveFilename(uri, contentResolver)
+                    val filename = sanitizeFilename(rawFilename)
                     val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: continue
                     append(filename, bytes, Headers.build {
                         append(HttpHeaders.ContentType, mimeType)
@@ -99,6 +100,11 @@ class CaptureApiService @Inject constructor(
         )?.use { cursor ->
             if (cursor.moveToFirst()) cursor.getString(0) else null
         } ?: uri.lastPathSegment ?: "attachment"
+    }
+
+    /** Strip characters that could cause header injection in Content-Disposition */
+    private fun sanitizeFilename(name: String): String {
+        return name.replace(Regex("[\"\\r\\n\\\\]"), "_")
     }
 
     suspend fun getInbox(

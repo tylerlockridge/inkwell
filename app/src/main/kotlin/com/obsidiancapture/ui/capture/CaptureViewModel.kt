@@ -46,20 +46,22 @@ class CaptureViewModel @Inject constructor(
             }
         }
 
-        // Collect coach mark dismissal state
+        // Collect coach mark dismissal state (single coroutine via combine)
         viewModelScope.launch {
-            coachMarkManager.isDismissed(CoachMarkKey.TYPE_TOGGLE).collect { dismissed ->
-                _uiState.update { it.copy(showTypeToggleCoachMark = !dismissed) }
-            }
-        }
-        viewModelScope.launch {
-            coachMarkManager.isDismissed(CoachMarkKey.IDEA_TYPE).collect { dismissed ->
-                _uiState.update { it.copy(showIdeaTypeCoachMark = !dismissed) }
-            }
-        }
-        viewModelScope.launch {
-            coachMarkManager.isDismissed(CoachMarkKey.ATTACHMENT_BUTTON).collect { dismissed ->
-                _uiState.update { it.copy(showAttachmentCoachMark = !dismissed) }
+            combine(
+                coachMarkManager.isDismissed(CoachMarkKey.TYPE_TOGGLE),
+                coachMarkManager.isDismissed(CoachMarkKey.IDEA_TYPE),
+                coachMarkManager.isDismissed(CoachMarkKey.ATTACHMENT_BUTTON),
+            ) { typeToggle, ideaType, attachment ->
+                Triple(typeToggle, ideaType, attachment)
+            }.collect { (typeToggle, ideaType, attachment) ->
+                _uiState.update {
+                    it.copy(
+                        showTypeToggleCoachMark = !typeToggle,
+                        showIdeaTypeCoachMark = !ideaType,
+                        showAttachmentCoachMark = !attachment,
+                    )
+                }
             }
         }
 

@@ -13,10 +13,16 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.obsidiancapture.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -38,6 +44,26 @@ class PreferencesManager @Inject constructor(
     private val lastCalendarKey = stringPreferencesKey("last_calendar")
     private val lastKindKey = stringPreferencesKey("last_kind")
     private val lastPriorityKey = stringPreferencesKey("last_priority")
+
+    private val initScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** Reactive auth token state — updated by [setAuthToken] and init migration */
+    private val _authToken = MutableStateFlow(BuildConfig.DEFAULT_AUTH_TOKEN)
+
+    init {
+        // One-time migration from plaintext DataStore → EncryptedSharedPreferences,
+        // then seed the reactive StateFlow with the current stored value.
+        initScope.launch {
+            val dataStoreToken = context.dataStore.data.first()[authTokenKey]
+            if (!dataStoreToken.isNullOrBlank()) {
+                encryptedPrefs.edit().putString(ENCRYPTED_AUTH_TOKEN_KEY, dataStoreToken).apply()
+                context.dataStore.edit { prefs -> prefs.remove(authTokenKey) }
+            }
+            val stored = encryptedPrefs.getString(ENCRYPTED_AUTH_TOKEN_KEY, BuildConfig.DEFAULT_AUTH_TOKEN)
+                ?: BuildConfig.DEFAULT_AUTH_TOKEN
+            _authToken.value = stored
+        }
+    }
 
     private val encryptedPrefs: SharedPreferences by lazy {
         val masterKey = MasterKey.Builder(context)
@@ -69,16 +95,7 @@ class PreferencesManager @Inject constructor(
         prefs[serverUrlKey] ?: DEFAULT_SERVER_URL
     }
 
-    val authToken: Flow<String> = flow {
-        // Migrate from plaintext DataStore if needed (one-time)
-        val dataStoreToken = context.dataStore.data.first()[authTokenKey]
-        if (!dataStoreToken.isNullOrBlank()) {
-            encryptedPrefs.edit().putString(ENCRYPTED_AUTH_TOKEN_KEY, dataStoreToken).apply()
-            context.dataStore.edit { prefs -> prefs.remove(authTokenKey) }
-        }
-        val stored = encryptedPrefs.getString(ENCRYPTED_AUTH_TOKEN_KEY, BuildConfig.DEFAULT_AUTH_TOKEN) ?: BuildConfig.DEFAULT_AUTH_TOKEN
-        emit(stored)
-    }
+    val authToken: StateFlow<String> = _authToken.asStateFlow()
 
     val syncIntervalMinutes: Flow<Long> = context.dataStore.data.map { prefs ->
         prefs[syncIntervalKey] ?: DEFAULT_SYNC_INTERVAL
@@ -142,6 +159,8 @@ class PreferencesManager @Inject constructor(
         edit.apply()
         // Ensure no plaintext copy remains in DataStore
         context.dataStore.edit { prefs -> prefs.remove(authTokenKey) }
+        // Update reactive StateFlow so all collectors see the change immediately
+        _authToken.value = if (token.isBlank()) BuildConfig.DEFAULT_AUTH_TOKEN else token
     }
 
     suspend fun setSyncIntervalMinutes(minutes: Long) {

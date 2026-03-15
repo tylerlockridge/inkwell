@@ -16,11 +16,11 @@ ralphRuns: 1
 Android app for capturing notes/tasks directly to an Obsidian vault inbox via a REST API.
 Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcean droplet.
 
-<!-- QUICK-RESUME-UPDATED: 2026-03-14 -->
+<!-- QUICK-RESUME-UPDATED: 2026-03-15 -->
 ## Quick Resume
-**Last Active:** 2026-03-14
-**Current Phase:** Stable — v2.3.0, all 12 audit findings resolved
-**Current Task:** LLM audit pipeline complete, all fixes applied
+**Last Active:** 2026-03-15
+**Current Phase:** Stable — v2.3.0, deep audit findings resolved
+**Current Task:** Deep composite audit complete (10 findings fixed)
 **Blockers:** None
 **Next Action:** (1) Build release APK: `./gradlew assembleRelease` (2) `adb install -r app/build/outputs/apk/release/app-release.apk` (3) Manual QA: test widget tap actions (capture + inbox deep links), test online capture with attachment, verify sync on pull-to-refresh
 
@@ -28,6 +28,21 @@ Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcea
 - Always uninstall release APK before running `connectedAndroidTest` (signature mismatch)
 - `Espresso.closeSoftKeyboard()` deadlocks on Android 16 — use `composeRule.waitForIdle()` instead
 - Runtime permissions must be pre-granted via `GrantPermissionRule` (camera, media, notifications)
+
+### Session 2026-03-15 — Deep Composite Audit (Security + Concurrency + Performance) — ALL 10 ITEMS RESOLVED
+Perspectives: Android Security Engineer, Concurrency & Sync Architect, Android Performance Engineer
+- ✅ **C-1 (HIGH):** Extracted `InboxSyncEngine` — shared fetch→stale detection→concurrent detail→bulk upsert→tombstone sweep. SyncWorker + InboxRepository both delegate to it. Eliminates code drift.
+- ✅ **C-2 (MED):** Upserts now use `noteDao.upsertAll()` (single transaction) instead of serial `forEach { upsert() }`
+- ✅ **C-3 (MED):** InboxRepository.syncInbox() now runs tombstone sweep (via shared engine)
+- ✅ **C-4 (MED):** `triggerImmediateSync/Upload` changed from `REPLACE` to `KEEP` — no longer cancels in-flight syncs
+- ✅ **P-1 (MED):** SyncWorker.updateWidgets() uses `getInboxNotesCount()` instead of loading full entity list
+- ✅ **S-1 (MED):** `authToken` converted from one-shot `flow{}` to reactive `MutableStateFlow` — all collectors see updates immediately
+- ✅ **P-4 (LOW):** Auth token migration runs once at init, not on every collection
+- ✅ **S-3 (LOW):** Multipart filename sanitized (strips quotes, newlines, backslashes)
+- ✅ **P-3 (LOW):** CaptureViewModel coach mark flows consolidated into single `combine()` collector
+- ✅ **C-4b:** Immediate upload also changed to KEEP for consistency
+- ✅ Quality gates: 294/294 tests passing, lint clean
+- Files modified: SyncWorker, InboxRepository, SyncScheduler, CaptureApiService, PreferencesManager, CaptureViewModel, InboxRepositoryTest, SyncWorkerIntegrationTest + new InboxSyncEngine
 
 ### Session 2026-03-14 — LLM Audit Pipeline (3-provider, all 12 findings resolved)
 - ✅ 3-provider audit: Gemini 3.1 (8.0/10), Codex GPT-5.4 #1 (7.0/10), Codex GPT-5.4 #2 (6.0/10) → **weighted avg 7.0/10** (up from 5.4 on 2026-02-28)

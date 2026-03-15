@@ -98,7 +98,7 @@ class SyncScheduler @Inject constructor(
 
         workManager.enqueueUniqueWork(
             SYNC_IMMEDIATE_NAME,
-            ExistingWorkPolicy.REPLACE,
+            ExistingWorkPolicy.KEEP,
             syncRequest,
         )
     }
@@ -110,7 +110,7 @@ class SyncScheduler @Inject constructor(
 
         workManager.enqueueUniqueWork(
             UPLOAD_IMMEDIATE_NAME,
-            ExistingWorkPolicy.REPLACE,
+            ExistingWorkPolicy.KEEP,
             uploadRequest,
         )
     }

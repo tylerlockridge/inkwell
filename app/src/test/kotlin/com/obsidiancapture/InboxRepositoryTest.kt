@@ -10,6 +10,7 @@ import com.obsidiancapture.data.remote.dto.NoteDetailResponse
 import com.obsidiancapture.data.remote.dto.NoteFrontmatter
 import com.obsidiancapture.data.repository.InboxRepository
 import com.obsidiancapture.data.repository.SyncResult
+import com.obsidiancapture.sync.InboxSyncEngine
 import com.obsidiancapture.sync.SyncScheduler
 import com.obsidiancapture.data.remote.dto.NoteUpdateResponse
 import io.mockk.coEvery
@@ -32,6 +33,7 @@ class InboxRepositoryTest {
     private lateinit var noteDao: NoteDao
     private lateinit var preferencesManager: PreferencesManager
     private lateinit var syncScheduler: SyncScheduler
+    private lateinit var syncEngine: InboxSyncEngine
     private lateinit var repository: InboxRepository
 
     @Before
@@ -40,9 +42,14 @@ class InboxRepositoryTest {
         noteDao = mockk(relaxed = true)
         preferencesManager = mockk(relaxed = true)
         syncScheduler = mockk(relaxed = true)
-        repository = InboxRepository(apiService, noteDao, preferencesManager, syncScheduler)
+        syncEngine = InboxSyncEngine(noteDao, apiService, preferencesManager)
+        repository = InboxRepository(apiService, noteDao, preferencesManager, syncScheduler, syncEngine)
 
         every { preferencesManager.serverUrl } returns flowOf("https://example.com")
+        every { preferencesManager.lastSyncedAt } returns flowOf("")
+        coEvery { apiService.getDeletedInbox(any(), any()) } returns InboxResponse(
+            items = emptyList(), totalCount = 0, syncToken = ""
+        )
     }
 
     private fun makeInboxItem(uid: String, updatedAt: String = "2026-02-08T12:00:00Z") = InboxItem(
@@ -90,7 +97,7 @@ class InboxRepositoryTest {
 
         val result = repository.syncInbox()
         assertEquals(SyncResult.Success(3), result)
-        coVerify(exactly = 3) { noteDao.upsert(any()) }
+        coVerify { noteDao.upsertAll(match { it.size == 3 }) }
     }
 
     @Test
