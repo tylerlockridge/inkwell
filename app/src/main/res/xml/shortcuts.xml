@@ -9,9 +9,9 @@
         android:shortcutLongLabel="@string/shortcut_capture_long">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="com.obsidiancapture"
-            android:targetClass="com.obsidiancapture.MainActivity"
-            android:data="obsidiancapture://capture" />
+            android:targetPackage="io.inkwell"
+            android:targetClass="io.inkwell.MainActivity"
+            android:data="inkwell://capture" />
     </shortcut>
 
     <shortcut
@@ -22,9 +22,9 @@
         android:shortcutLongLabel="@string/shortcut_inbox_long">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="com.obsidiancapture"
-            android:targetClass="com.obsidiancapture.MainActivity"
-            android:data="obsidiancapture://inbox" />
+            android:targetPackage="io.inkwell"
+            android:targetClass="io.inkwell.MainActivity"
+            android:data="inkwell://inbox" />
     </shortcut>
 
 </shortcuts>

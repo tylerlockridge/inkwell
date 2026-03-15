@@ -11,7 +11,7 @@ Build: Gradle (KTS) | Min SDK: 26 | Target SDK: 34
 ## File Locations
 ```
 Project Root: C:\Users\tyler\Documents\Claude Projects\Inkwell
-Source:       app/src/main/kotlin/com/obsidiancapture/
+Source:       app/src/main/kotlin/io/inkwell/
 Tests:        app/src/test/ (unit tests), app/src/androidTest/ (instrumented)
 Infra:        infra/docker-compose.yml (Obsidian-Dashboard-Desktop)
 Server:       See Obsidian-Dashboard-Desktop project — 138.197.81.173

@@ -11,17 +11,17 @@
 -keepclasseswithmembers class kotlinx.serialization.json.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
--keep,includedescriptorclasses class com.obsidiancapture.**$$serializer { *; }
--keepclassmembers class com.obsidiancapture.** {
+-keep,includedescriptorclasses class io.inkwell.**$$serializer { *; }
+-keepclassmembers class io.inkwell.** {
     *** Companion;
 }
--keepclasseswithmembers class com.obsidiancapture.** {
+-keepclasseswithmembers class io.inkwell.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
 
 # Room
 -keep class * extends androidx.room.RoomDatabase
--keep class com.obsidiancapture.data.local.entity.** { *; }
+-keep class io.inkwell.data.local.entity.** { *; }
 -dontwarn androidx.room.paging.**
 
 # Hilt
@@ -44,7 +44,7 @@
 -keep class androidx.datastore.preferences.** { *; }
 
 # App DTO classes (kotlinx.serialization)
--keep class com.obsidiancapture.data.remote.dto.** { *; }
+-keep class io.inkwell.data.remote.dto.** { *; }
 
 # Encrypted SharedPreferences (security-crypto)
 -keep class androidx.security.crypto.** { *; }

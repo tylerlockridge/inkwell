@@ -16,17 +16,17 @@ val localProps = Properties().apply {
 }
 
 android {
-    namespace = "com.obsidiancapture"
+    namespace = "io.inkwell"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.obsidiancapture"
+        applicationId = "io.inkwell"
         minSdk = 26
         targetSdk = 35
         versionCode = 12
         versionName = "2.4.0"
 
-        testInstrumentationRunner = "com.obsidiancapture.HiltTestRunner"
+        testInstrumentationRunner = "io.inkwell.HiltTestRunner"
 
         // Personal app — bake in defaults so the app works on install without any setup.
         val defaultAuthToken = System.getenv("CAPTURE_AUTH_TOKEN") ?: localProps.getProperty("CAPTURE_AUTH_TOKEN") ?: ""

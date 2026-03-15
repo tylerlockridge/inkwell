@@ -238,7 +238,7 @@ Architecture 8, Code Quality 7, Testing 5, Security 7, Performance 6, Documentat
 
 ## Project Info
 - **App Name:** Inkwell
-- **Package:** `com.obsidiancapture`
+- **Package:** `io.inkwell`
 - **Min SDK:** 26, Target SDK: 34
 - **Server:** Obsidian Dashboard Desktop at `138.197.81.173`
 - **Repo:** https://github.com/tylerlockridge/inkwell
