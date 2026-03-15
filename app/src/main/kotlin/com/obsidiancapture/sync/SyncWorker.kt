@@ -149,6 +149,8 @@ class SyncWorker @AssistedInject constructor(
             // This usually means an auth or server-side issue — retry with backoff.
             Log.e(TAG, "Sync failed: unexpected response format: ${e.message}")
             Result.retry()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e // Respect structured cancellation — don't retry cancelled work
         } catch (e: Exception) {
             Log.e(TAG, "Sync failed: ${e.message}")
             Result.retry()

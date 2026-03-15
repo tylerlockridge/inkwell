@@ -1,10 +1,17 @@
 package com.obsidiancapture.sync
 
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.obsidiancapture.MainActivity
+import com.obsidiancapture.R
+import com.obsidiancapture.notifications.NotificationChannels
 import com.obsidiancapture.data.local.PreferencesManager
 import com.obsidiancapture.data.local.dao.NoteDao
 import com.obsidiancapture.data.local.entity.NoteEntity
@@ -63,6 +70,9 @@ class UploadWorker @AssistedInject constructor(
                 Log.w(TAG, "Upload failed for ${note.uid}: HTTP $status")
                 when {
                     status == 401 -> {
+                        // Mirror SyncWorker: clear stale token + notify user
+                        preferencesManager.setAuthToken("")
+                        postAuthExpiredNotification()
                         authFailure = true
                         break // Stop processing — auth is invalid
                     }
@@ -149,7 +159,32 @@ class UploadWorker @AssistedInject constructor(
         noteDao.markSynced(note.uid, now)
     }
 
+    private fun postAuthExpiredNotification() {
+        try {
+            val intent = Intent(applicationContext, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            val pendingIntent = PendingIntent.getActivity(
+                applicationContext, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            val notification = NotificationCompat.Builder(applicationContext, NotificationChannels.SYNC_ERROR_CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle(applicationContext.getString(R.string.notification_auth_expired_title))
+                .setContentText(applicationContext.getString(R.string.notification_auth_expired_text))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .build()
+            val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.notify(NOTIFICATION_ID_AUTH_EXPIRED, notification)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to post auth expired notification: ${e.message}")
+        }
+    }
+
     companion object {
         private const val TAG = "UploadWorker"
+        private const val NOTIFICATION_ID_AUTH_EXPIRED = 1002
     }
 }

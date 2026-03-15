@@ -21,6 +21,7 @@ import io.mockk.slot
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -180,18 +181,20 @@ class SyncWorkerIntegrationTest {
     }
 
     @Test
-    fun `CancellationException inside async is re-thrown from coroutineScope`() = runTest {
-        // Inside the async block, CancellationException is re-thrown (line 91).
-        // coroutineScope propagates it. The outer catch(Exception) in doWork catches it
-        // and returns retry — verifying the re-throw from async works correctly.
+    fun `CancellationException inside async propagates without being caught`() = runTest {
+        // CancellationException must not be swallowed by the outer catch — it should
+        // propagate so WorkManager can stop cleanly instead of rescheduling.
         val items = listOf(makeInboxItem("a"))
         coEvery { apiService.getInbox(any(), limit = any()) } returns InboxResponse(
             items = items, totalCount = 1, syncToken = ""
         )
         coEvery { apiService.getNote(any(), "a") } throws kotlinx.coroutines.CancellationException("cancelled")
 
-        val result = buildWorker().doWork()
-        // CancellationException escapes coroutineScope but is caught by outer catch(Exception)
-        assertEquals(Result.retry(), result)
+        try {
+            buildWorker().doWork()
+            fail("Expected CancellationException to propagate")
+        } catch (_: kotlinx.coroutines.CancellationException) {
+            // Expected — cancellation is properly respected
+        }
     }
 }

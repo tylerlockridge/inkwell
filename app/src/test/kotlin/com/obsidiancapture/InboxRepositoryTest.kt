@@ -83,7 +83,7 @@ class InboxRepositoryTest {
             makeInboxItem("c", "2026-02-08T12:00:00Z"),
         )
         coEvery { apiService.getInbox(any(), limit = any()) } returns InboxResponse(items, 3, "")
-        coEvery { noteDao.getByUid(any()) } returns null // no local notes
+        coEvery { noteDao.getAllByUids(any()) } returns emptyList() // no local notes
         coEvery { apiService.getNote(any(), "a") } returns makeNoteDetail("a")
         coEvery { apiService.getNote(any(), "b") } returns makeNoteDetail("b")
         coEvery { apiService.getNote(any(), "c") } returns makeNoteDetail("c")
@@ -100,9 +100,10 @@ class InboxRepositoryTest {
             makeInboxItem("b", "2026-02-08T12:00:00Z"),
         )
         coEvery { apiService.getInbox(any(), limit = any()) } returns InboxResponse(items, 2, "")
-        // "a" has local newer timestamp
-        coEvery { noteDao.getByUid("a") } returns makeLocalNote("a", updated = "2026-02-08T14:00:00Z")
-        coEvery { noteDao.getByUid("b") } returns null
+        // "a" has local newer timestamp — bulk lookup returns it
+        coEvery { noteDao.getAllByUids(any()) } returns listOf(
+            makeLocalNote("a", updated = "2026-02-08T14:00:00Z"),
+        )
         coEvery { apiService.getNote(any(), "b") } returns makeNoteDetail("b")
 
         val result = repository.syncInbox()
@@ -117,8 +118,10 @@ class InboxRepositoryTest {
             makeInboxItem("b", "2026-02-08T12:00:00Z"),
         )
         coEvery { apiService.getInbox(any(), limit = any()) } returns InboxResponse(items, 2, "")
-        coEvery { noteDao.getByUid("a") } returns makeLocalNote("a", pendingSync = true)
-        coEvery { noteDao.getByUid("b") } returns null
+        // "a" has pendingSync — bulk lookup returns it
+        coEvery { noteDao.getAllByUids(any()) } returns listOf(
+            makeLocalNote("a", pendingSync = true),
+        )
         coEvery { apiService.getNote(any(), "b") } returns makeNoteDetail("b")
 
         val result = repository.syncInbox()
@@ -133,7 +136,7 @@ class InboxRepositoryTest {
             makeInboxItem("b", "2026-02-08T12:00:00Z"),
         )
         coEvery { apiService.getInbox(any(), limit = any()) } returns InboxResponse(items, 2, "")
-        coEvery { noteDao.getByUid(any()) } returns null
+        coEvery { noteDao.getAllByUids(any()) } returns emptyList()
         coEvery { apiService.getNote(any(), "a") } throws RuntimeException("network error")
         coEvery { apiService.getNote(any(), "b") } returns makeNoteDetail("b")
 

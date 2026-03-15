@@ -48,7 +48,10 @@ class NotificationActionReceiverTest {
     ): String {
         when (action) {
             NotificationActionReceiver.ACTION_MARK_DONE -> {
-                if (uid == null) return "early_return_no_finish" // Known bug: finish() not called
+                if (uid == null) {
+                    finishCalled = true
+                    return "early_return_finish"
+                }
                 try {
                     inboxRepository.updateNoteStatus(uid, "done")
                     if (notificationId != 0) {
@@ -121,10 +124,10 @@ class NotificationActionReceiverTest {
     }
 
     @Test
-    fun `MARK_DONE missing uid triggers early return - finish NOT called`() = runTest {
+    fun `MARK_DONE missing uid triggers early return with finish called`() = runTest {
         val result = simulateOnReceive(NotificationActionReceiver.ACTION_MARK_DONE, uid = null)
-        assertEquals("early_return_no_finish", result)
-        assertFalse("finish should NOT be called when uid is missing (known leak)", finishCalled)
+        assertEquals("early_return_finish", result)
+        assertTrue("finish should be called even when uid is missing", finishCalled)
         coVerify(exactly = 0) { inboxRepository.updateNoteStatus(any(), any()) }
     }
 

@@ -16,18 +16,35 @@ ralphRuns: 1
 Android app for capturing notes/tasks directly to an Obsidian vault inbox via a REST API.
 Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcean droplet.
 
-<!-- QUICK-RESUME-UPDATED: 2026-03-10 -->
+<!-- QUICK-RESUME-UPDATED: 2026-03-14 -->
 ## Quick Resume
-**Last Active:** 2026-03-10
-**Current Phase:** Stable — v2.3.0 built, attachment upload fully wired
-**Current Task:** Done (commit 191ba7d)
+**Last Active:** 2026-03-14
+**Current Phase:** Stable — v2.3.0, all 12 audit findings resolved
+**Current Task:** LLM audit pipeline complete, all fixes applied
 **Blockers:** None
-**Next Action:** (1) `adb install -r app/build/outputs/apk/release/app-release.apk` — APK is built and ready. (2) Manual QA: pick a photo, save capture, wait for UploadWorker sync, verify vault has `.md` + `Attachments/{uid}/` folder. (3) Future: SyncWorker should read `attachments` from server NoteDetailResponse back into local DB so inbox shows attachment count correctly.
+**Next Action:** (1) Build release APK: `./gradlew assembleRelease` (2) `adb install -r app/build/outputs/apk/release/app-release.apk` (3) Manual QA: test widget tap actions (capture + inbox deep links), test online capture with attachment, verify sync on pull-to-refresh
 
 **⚠️ Known test gotcha (Android 16):**
 - Always uninstall release APK before running `connectedAndroidTest` (signature mismatch)
 - `Espresso.closeSoftKeyboard()` deadlocks on Android 16 — use `composeRule.waitForIdle()` instead
 - Runtime permissions must be pre-granted via `GrantPermissionRule` (camera, media, notifications)
+
+### Session 2026-03-14 — LLM Audit Pipeline (3-provider, all 12 findings resolved)
+- ✅ 3-provider audit: Gemini 3.1 (8.0/10), Codex GPT-5.4 #1 (7.0/10), Codex GPT-5.4 #2 (6.0/10) → **weighted avg 7.0/10** (up from 5.4 on 2026-02-28)
+- ✅ **AP-4 (HIGH):** CaptureRepository.capture() now routes to multipart when attachmentUris present — online captures with attachments no longer silently drop files
+- ✅ **AP-5 (HIGH):** InboxRepository.syncInbox() uses Instant.parse() for timestamp comparison (was string comparison)
+- ✅ **AP-1 (MED, 2x):** SyncWorker explicit CancellationException catch — structured cancellation respected
+- ✅ **AP-2 (MED, 2x):** UploadWorker 401 now clears token + posts auth-expired notification (mirrors SyncWorker)
+- ✅ **AP-6 (MED):** InboxRepository refactored: bulk getAllByUids() + concurrent async/awaitAll detail fetches (no more N+1)
+- ✅ **AP-7 (MED):** Both widgets wired with Glance clickable actions (capture → obsidiancapture://capture, inbox → obsidiancapture://inbox)
+- ✅ **AP-3 (LOW, 2x):** NotificationActionReceiver calls finish() on all paths
+- ✅ **AP-8 (LOW):** CaptureRepository logs gated on BuildConfig.DEBUG
+- ✅ **AP-9 (LOW):** CaptureScreen uses default Scaffold insets (removed WindowInsets(0))
+- ✅ **AP-10 (LOW):** PreferencesManager.setServerUrl() returns Boolean instead of throwing
+- ✅ **AP-11 (LOW):** Testing strategy doc updated (36 unit / 4 instrumented / 294+ tests)
+- ✅ **AP-12 (LOW):** Tests updated to verify fixed behavior (NotificationActionReceiverTest, SyncWorkerIntegrationTest, InboxRepositoryTest)
+- ✅ Quality gates: 294/294 tests passing, lint clean
+- Files modified: SyncWorker, UploadWorker, NotificationActionReceiver, CaptureRepository, InboxRepository, QuickCaptureWidget, InboxCountWidget, CaptureScreen, PreferencesManager, SettingsViewModel, 09-testing-strategy.md, + 3 test files
 
 ### Session 2026-03-10 — v2.3.0 release prep + server smoke test
 - ✅ Bumped versionCode 10→11, versionName 2.2.0→2.3.0 (commit 37a994d)

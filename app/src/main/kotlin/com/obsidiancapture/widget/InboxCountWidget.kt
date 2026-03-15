@@ -10,8 +10,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
-import androidx.glance.action.ActionParameters
-import androidx.glance.action.actionStartActivity
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
@@ -56,7 +55,8 @@ class InboxCountWidget : GlanceAppWidget() {
             modifier = GlanceModifier
                 .fillMaxSize()
                 .padding(12.dp)
-                .background(GlanceTheme.colors.widgetBackground),
+                .background(GlanceTheme.colors.widgetBackground)
+                .clickable(actionStartActivity(intent)),
             verticalAlignment = Alignment.CenterVertically,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

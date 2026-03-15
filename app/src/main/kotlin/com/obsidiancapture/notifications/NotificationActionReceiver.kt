@@ -32,7 +32,11 @@ class NotificationActionReceiver : BroadcastReceiver() {
 
         when (intent.action) {
             ACTION_MARK_DONE -> {
-                val uid = intent.getStringExtra(EXTRA_NOTE_UID) ?: return
+                val uid = intent.getStringExtra(EXTRA_NOTE_UID)
+                if (uid == null) {
+                    pendingResult.finish()
+                    return
+                }
                 val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, 0)
                 scope.launch {
                     try {

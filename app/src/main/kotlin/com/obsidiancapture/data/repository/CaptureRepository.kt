@@ -1,6 +1,8 @@
 package com.obsidiancapture.data.repository
 
 import android.content.Context
+import android.util.Log
+import com.obsidiancapture.BuildConfig
 import com.obsidiancapture.data.local.PreferencesManager
 import com.obsidiancapture.data.local.dao.NoteDao
 import com.obsidiancapture.data.local.entity.NoteEntity
@@ -84,7 +86,14 @@ class CaptureRepository @Inject constructor(
         }
 
         return try {
-            val response = apiService.capture(serverUrl, request)
+            val response = if (attachmentUris?.isNotEmpty() == true) {
+                apiService.captureWithAttachments(
+                    serverUrl, request, attachmentUris,
+                    context.contentResolver,
+                )
+            } else {
+                apiService.capture(serverUrl, request)
+            }
             // Save locally with synced state
             noteDao.upsert(
                 NoteEntity(
@@ -111,7 +120,7 @@ class CaptureRepository @Inject constructor(
             CaptureResult.Online(response)
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            android.util.Log.i("CaptureRepository", "Network unavailable, saving offline: ${e.javaClass.simpleName}")
+            if (BuildConfig.DEBUG) Log.i(TAG, "Network unavailable, saving offline: ${e.javaClass.simpleName}")
             saveOffline(request, clientUuid, now, attachmentUrisJson)
         }
     }
@@ -153,7 +162,7 @@ class CaptureRepository @Inject constructor(
             val pendingSyncCount = noteDao.getPendingSyncCount().first()
             WidgetStateUpdater.updateCounts(context, inboxCount, pendingSyncCount)
         } catch (e: Exception) {
-            android.util.Log.w("CaptureRepository", "Widget update failed", e)
+            if (BuildConfig.DEBUG) Log.w(TAG, "Widget update failed", e)
         }
     }
 
@@ -164,7 +173,7 @@ class CaptureRepository @Inject constructor(
             apiService.getCaptureDefaults(serverUrl)
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            android.util.Log.w("CaptureRepository", "Failed to fetch capture defaults", e)
+            if (BuildConfig.DEBUG) Log.w(TAG, "Failed to fetch capture defaults", e)
             null
         }
     }
@@ -176,7 +185,7 @@ class CaptureRepository @Inject constructor(
             apiService.getSystemStatus(serverUrl)
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            android.util.Log.w("CaptureRepository", "Failed to fetch system status", e)
+            if (BuildConfig.DEBUG) Log.w(TAG, "Failed to fetch system status", e)
             null
         }
     }
@@ -188,7 +197,7 @@ class CaptureRepository @Inject constructor(
             apiService.getSyncthingStatus(serverUrl)
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            android.util.Log.w("CaptureRepository", "Failed to fetch Syncthing status", e)
+            if (BuildConfig.DEBUG) Log.w(TAG, "Failed to fetch Syncthing status", e)
             null
         }
     }
@@ -200,7 +209,7 @@ class CaptureRepository @Inject constructor(
             apiService.restartSyncthing(serverUrl)
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            android.util.Log.w("CaptureRepository", "Failed to restart Syncthing", e)
+            if (BuildConfig.DEBUG) Log.w(TAG, "Failed to restart Syncthing", e)
             null
         }
     }
@@ -211,4 +220,7 @@ class CaptureRepository @Inject constructor(
         noteDao.markSynced(uid, Instant.now().toString())
     }
 
+    companion object {
+        private const val TAG = "CaptureRepository"
+    }
 }

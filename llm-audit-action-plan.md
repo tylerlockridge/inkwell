@@ -1,84 +1,100 @@
 # LLM Audit Action Plan — Inkwell
-**Date:** 2026-02-28 | **Overall Score:** 5.4/10 (weighted)
+**Date:** 2026-03-14 | **Overall Score:** 7.0/10 (weighted avg across 3 providers)
 
-Sorted by: cross-provider confidence → severity
+Previous audit (2026-02-28): 5.4/10 → **+1.6 improvement**
 
----
+## Audit Summary
 
-## CONFIRMED + CRITICAL (execute immediately)
+| Provider | Model | Overall | Arch | Quality | Testing | Security | Perf | Docs |
+|----------|-------|---------|------|---------|---------|----------|------|------|
+| Gemini | Gemini 3.1 | **8.0** | 9 | 9 | 9 | 9 | 8 | 7 |
+| Codex #1 | GPT-5.4 | **7.0** | 7 | 7 | 8 | 8 | 6 | 7 |
+| Codex #2 | GPT-5.4 | **6.0** | 6 | 6 | 7 | 7 | 6 | 6 |
+| **Weighted Avg** | | **7.0** | 7.3 | 7.3 | 8.0 | 8.0 | 6.7 | 6.7 |
 
-### #1 — Fix `catch(e: Exception)` → `CancellationException` leakage
-- **Confidence:** CONFIRMED (all 3 providers)
-- **Severity:** CRITICAL
-- **Files:** `data/repository/CaptureRepository.kt`, `sync/SyncWorker.kt`
-- **Fix:** In every `catch (e: Exception)` block that falls back to offline/retry, add `if (e is CancellationException) throw e` as the first line. Prefer catching `IOException` + `ClientRequestException` specifically.
-- **Status:** ☐ TODO → DONE in this session
-
-### #2 — Fix `sendWithoutRequest` bearer token leakage
-- **Confidence:** CONFIRMED (Monica critical, Codex noted)
-- **Severity:** CRITICAL
-- **File:** `di/NetworkModule.kt`
-- **Fix:** Replace `request.url.host != "localhost"` with a strict allowlist. The app only talks to one user-configured server. Use the stored `serverUrl` host for comparison, or maintain a separate unauthenticated client for non-API calls.
-- **Status:** ☐ TODO → DONE in this session
-
-### #3 — Add behavioral sync tests (conflict + offline fallback)
-- **Confidence:** CONFIRMED (all 3 providers)
-- **Severity:** HIGH
-- **Files:** `app/src/test/` — add `SyncWorkerConflictTest.kt`, `CaptureRepositoryOfflineTest.kt`
-- **Fix:** Use Room in-memory database + mock Ktor client to test: last-write-wins skip, pending-local skip, 401 token-clear path, offline fallback, retry vs permanent failure distinction.
-- **Status:** ☐ TODO (deferred — implement after code fixes)
+Total unique findings: 0 critical, 2 high, 6 medium, 5 low
+**All 12 findings resolved in this session.**
 
 ---
 
-## CONFIRMED + HIGH (next sprint)
+## Cross-Referenced Findings — ALL RESOLVED
 
-### #4 — Encrypt auth token storage (EncryptedSharedPreferences)
-- **Confidence:** CONFIRMED (Gemini + Monica)
-- **File:** `data/local/PreferencesManager.kt`
-- **Fix:** Migrate DataStore auth token to Android Keystore-backed `EncryptedSharedPreferences`. If staying on DataStore, wrap with Tink AEAD.
+### 2-Provider Consensus (Codex #1 + #2)
 
-### #5 — Remove `BuildConfig.DEFAULT_AUTH_TOKEN`
-- **Confidence:** CONFIRMED (Gemini + Monica)
-- **File:** `app/build.gradle.kts:34`
-- **Fix:** Delete the `buildConfigField` for `DEFAULT_AUTH_TOKEN`. Use empty string default and require explicit configuration. Token should never be compiled into the APK.
+| ID | Sev | Title | File | Status |
+|----|-----|-------|------|--------|
+| **AP-1** | MED | SyncWorker swallows CancellationException at top level | SyncWorker.kt:152 | ✅ FIXED |
+| **AP-2** | MED | UploadWorker 401 handling inconsistent with SyncWorker | UploadWorker.kt:65 | ✅ FIXED |
+| **AP-3** | LOW | NotificationActionReceiver leaks goAsync() on missing UID | NotificationActionReceiver.kt:35 | ✅ FIXED |
 
-### #6 — Add exponential backoff to SyncWorker
-- **Confidence:** CONFIRMED (Codex + Monica)
-- **File:** `sync/SyncScheduler.kt`
-- **Fix:** Set `WorkRequest.Builder.setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)` when scheduling. Prevents tight retry loops during network outages.
+### Single-Provider HIGH (Codex #2)
 
----
+| ID | Sev | Title | File | Status |
+|----|-----|-------|------|--------|
+| **AP-4** | HIGH | Online captures with attachments skip multipart path | CaptureRepository.kt:87 | ✅ FIXED |
+| **AP-5** | HIGH | InboxRepository.syncInbox() uses string timestamp comparison | InboxRepository.kt:60 | ✅ FIXED |
 
-## CONFIRMED + MEDIUM (backlog)
+### Single-Provider MEDIUM
 
-### #7 — Fix N+1 calls in SyncWorker (Codex full-repo finding)
-- **Confidence:** LIKELY (Codex only — full repo access)
-- **File:** `sync/SyncWorker.kt`
-- **Fix:** Either add a bulk-detail endpoint on the server, or parallelize per-item fetches with `coroutineScope { items.map { async { apiService.getNote(...) } }.awaitAll() }`.
+| ID | Sev | Title | File | Status |
+|----|-----|-------|------|--------|
+| **AP-6** | MED | InboxRepository serial N+1 DB/network lookups | InboxRepository.kt:52 | ✅ FIXED |
+| **AP-7** | MED | Widgets display-only despite tap affordances | QuickCaptureWidget.kt / InboxCountWidget.kt | ✅ FIXED |
 
-### #8 — Replace `collectAsState()` with `collectAsStateWithLifecycle()`
-- **Confidence:** LIKELY (Codex only)
-- **Files:** UI composables
-- **Fix:** Add `androidx.lifecycle:lifecycle-runtime-compose` dependency. Replace `flow.collectAsState()` with `flow.collectAsStateWithLifecycle()` across all screens.
+### LOW Severity
 
-### #9 — Decompose large composables (CaptureScreen, CaptureToolbar)
-- **Confidence:** CONFIRMED (Codex + Monica)
-- **Files:** `ui/capture/CaptureScreen.kt` (457L), `ui/capture/CaptureToolbar.kt` (548L)
-- **Fix:** Extract stable, stateless composables for the chip row, date picker, tag panel. Pass state via parameters, not by reaching up.
+| ID | Sev | Title | File | Status |
+|----|-----|-------|------|--------|
+| **AP-8** | LOW | Raw Log usage without DEBUG check | CaptureRepository.kt | ✅ FIXED |
+| **AP-9** | LOW | WindowInsets(0) ignores system bars | CaptureScreen.kt | ✅ FIXED |
+| **AP-10** | LOW | require() throws on invalid URL input | PreferencesManager.kt | ✅ FIXED |
+| **AP-11** | LOW | Testing strategy doc stale | 09-testing-strategy.md | ✅ FIXED |
+| **AP-12** | LOW | Tests codify known bugs as expected | NotificationActionReceiverTest.kt | ✅ FIXED |
 
 ---
 
-## LOW / SINGLE SOURCE (consider for future)
+## Fix Details
 
-### #10 — Move domain orchestration out of MainActivity
-- **Confidence:** LIKELY (Codex only)
-- **Fix:** Create a coordinator ViewModel for biometric lock + startup sync trigger.
+### ✅ AP-1 — CancellationException swallowed (MED, 2x consensus)
+Added explicit `catch(CancellationException)` that rethrows before the generic `catch(Exception)` in SyncWorker.doWork(). Updated SyncWorkerIntegrationTest to verify cancellation propagates.
 
-### #11 — Add conflict detection to sync (replace last-write-wins)
-- **Confidence:** CONFIRMED 3/3 (data integrity risk)
-- **Severity:** HIGH long-term, LOW urgency if single-user
-- **Fix:** On conflict, write a `.conflict` variant or surface a UI diff. For single-user multi-device, consider vector clocks or CRDTs.
+### ✅ AP-2 — UploadWorker 401 silent failure (MED, 2x consensus)
+UploadWorker now mirrors SyncWorker on 401: clears stale auth token via `preferencesManager.setAuthToken("")` and posts an auth-expired notification before returning failure.
 
-### #12 — Add architecture docs / KDoc to public APIs
-- **Confidence:** CONFIRMED 3/3 (docs 3.7/10)
-- **Fix:** Document sync strategy, token lifecycle, and conflict policy in ARCHITECTURE.md. Add KDoc to repository public methods.
+### ✅ AP-3 — goAsync() leak (LOW, 2x consensus)
+NotificationActionReceiver now calls `pendingResult.finish()` before returning when UID is missing. Updated test to verify finish is called.
+
+### ✅ AP-4 — Online attachment capture skips multipart (HIGH)
+CaptureRepository.capture() now branches: when `attachmentUris` is non-empty, calls `apiService.captureWithAttachments()` instead of `apiService.capture()`.
+
+### ✅ AP-5 — Timestamp string comparison (HIGH)
+InboxRepository.syncInbox() now uses `Instant.parse()` comparison via private `isServerNewer()` helper, matching SyncWorker's approach.
+
+### ✅ AP-6 — InboxRepository serial N+1 (MED)
+Replaced serial `noteDao.getByUid()` + `apiService.getNote()` loop with bulk `noteDao.getAllByUids()` lookup + concurrent `coroutineScope { async/awaitAll }` detail fetches. Updated InboxRepositoryTest to mock `getAllByUids()`.
+
+### ✅ AP-7 — Widget click actions (MED)
+- QuickCaptureWidget: Added `clickable(actionStartActivity(...))` to both Capture column (→ `obsidiancapture://capture`) and Inbox column (→ `obsidiancapture://inbox`).
+- InboxCountWidget: Wired the existing intent to the Column via `clickable(actionStartActivity(intent))`.
+
+### ✅ AP-8 — Raw Log without DEBUG check (LOW)
+All `android.util.Log` calls in CaptureRepository now gated on `BuildConfig.DEBUG`. Added proper `Log` import + `TAG` companion.
+
+### ✅ AP-9 — WindowInsets(0) (LOW)
+Removed `contentWindowInsets = WindowInsets(0)` from CaptureScreen's Scaffold — now uses default Scaffold inset handling.
+
+### ✅ AP-10 — require() throws on invalid URL (LOW)
+`PreferencesManager.setServerUrl()` now returns `Boolean` instead of throwing `IllegalArgumentException`. SettingsViewModel checks the return value and shows snackbar on failure.
+
+### ✅ AP-11 — Testing strategy doc stale (LOW)
+Updated `documentation/09-testing-strategy.md`: test counts (36 unit / 4 instrumented / 294+ tests), test stack (added Robolectric, Turbine), coverage table updated with all 36 test files, known gaps updated.
+
+### ✅ AP-12 — Tests codify known bugs (LOW)
+- NotificationActionReceiverTest: Updated to verify `finish()` IS called on missing UID (was asserting it was NOT called).
+- SyncWorkerIntegrationTest: Updated to verify CancellationException propagates (was asserting it was caught and retried).
+
+---
+
+## Quality Gates
+- `./gradlew test`: ✅ 294/294 passing
+- `./gradlew lint`: ✅ Clean

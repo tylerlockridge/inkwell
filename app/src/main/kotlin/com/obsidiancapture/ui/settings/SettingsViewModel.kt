@@ -62,9 +62,8 @@ class SettingsViewModel @Inject constructor(
     fun onServerUrlChange(url: String) {
         _uiState.update { it.copy(serverUrl = url, connectionStatus = ConnectionStatus.Unknown) }
         viewModelScope.launch {
-            try {
-                preferencesManager.setServerUrl(url)
-            } catch (_: IllegalArgumentException) {
+            val saved = preferencesManager.setServerUrl(url)
+            if (!saved) {
                 _uiState.update { it.copy(snackbarMessage = "URL must use HTTPS (or localhost for dev)") }
             }
         }

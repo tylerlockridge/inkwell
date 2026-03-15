@@ -10,7 +10,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.currentState
@@ -53,9 +55,14 @@ class QuickCaptureWidget : GlanceAppWidget() {
                 .background(GlanceTheme.colors.widgetBackground),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Capture button area
+            // Capture button area — taps open Capture screen
             Column(
-                modifier = GlanceModifier.defaultWeight(),
+                modifier = GlanceModifier.defaultWeight()
+                    .clickable(actionStartActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse("obsidiancapture://capture")).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        },
+                    )),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -76,9 +83,14 @@ class QuickCaptureWidget : GlanceAppWidget() {
                 )
             }
 
-            // Inbox badge area
+            // Inbox badge area — taps open Inbox screen
             Column(
-                modifier = GlanceModifier.padding(start = 8.dp),
+                modifier = GlanceModifier.padding(start = 8.dp)
+                    .clickable(actionStartActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse("obsidiancapture://inbox")).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        },
+                    )),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalAlignment = Alignment.CenterVertically,
             ) {

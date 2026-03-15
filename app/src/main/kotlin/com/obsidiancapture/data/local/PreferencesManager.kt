@@ -120,12 +120,16 @@ class PreferencesManager @Inject constructor(
         prefs[lastPriorityKey]
     }
 
-    suspend fun setServerUrl(url: String) {
+    /**
+     * Sets the server URL after validation. Returns false if the URL is invalid
+     * (non-HTTPS, non-localhost). Callers should check the return value and
+     * surface an error to the user instead of catching exceptions.
+     */
+    suspend fun setServerUrl(url: String): Boolean {
         val normalized = url.trimEnd('/')
-        require(isValidServerUrl(normalized)) {
-            "Server URL must use HTTPS (or localhost/10.0.2.2 for development)"
-        }
+        if (!isValidServerUrl(normalized)) return false
         context.dataStore.edit { prefs -> prefs[serverUrlKey] = normalized }
+        return true
     }
 
     suspend fun setAuthToken(token: String) {
