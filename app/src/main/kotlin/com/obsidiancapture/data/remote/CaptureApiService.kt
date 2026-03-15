@@ -23,6 +23,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.request.forms.ChannelProvider
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
@@ -35,6 +36,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
+import io.ktor.utils.io.jvm.javaio.toByteReadChannel
 import com.obsidiancapture.BuildConfig
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -82,11 +84,21 @@ class CaptureApiService @Inject constructor(
                     val mimeType = contentResolver.getType(uri) ?: "application/octet-stream"
                     val rawFilename = resolveFilename(uri, contentResolver)
                     val filename = sanitizeFilename(rawFilename)
-                    val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: continue
-                    append(filename, bytes, Headers.build {
+                    val fileSize = resolveFileSize(uri, contentResolver)
+                    val headers = Headers.build {
                         append(HttpHeaders.ContentType, mimeType)
                         append(HttpHeaders.ContentDisposition, "filename=\"$filename\"")
-                    })
+                    }
+                    if (fileSize != null && fileSize > 0) {
+                        // Stream the file content without loading it entirely into memory
+                        append(filename, ChannelProvider(fileSize) {
+                            contentResolver.openInputStream(uri)!!.toByteReadChannel()
+                        }, headers)
+                    } else {
+                        // Fallback: file size unknown, must read into memory
+                        val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: continue
+                        append(filename, bytes, headers)
+                    }
                 }
             },
         ) {
@@ -100,6 +112,31 @@ class CaptureApiService @Inject constructor(
         )?.use { cursor ->
             if (cursor.moveToFirst()) cursor.getString(0) else null
         } ?: uri.lastPathSegment ?: "attachment"
+    }
+
+    /**
+     * Resolve the file size in bytes for a content URI.
+     * Tries OpenableColumns.SIZE first (works for most content providers),
+     * then falls back to AssetFileDescriptor. Returns null if size cannot be determined.
+     */
+    private fun resolveFileSize(uri: Uri, contentResolver: ContentResolver): Long? {
+        // Try cursor query first — most reliable for content:// URIs
+        val cursorSize = contentResolver.query(
+            uri, arrayOf(OpenableColumns.SIZE), null, null, null,
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) cursor.getLong(sizeIndex) else null
+            } else null
+        }
+        if (cursorSize != null && cursorSize > 0) return cursorSize
+
+        // Fallback to AssetFileDescriptor
+        return try {
+            contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length.takeIf { len -> len >= 0 } }
+        } catch (_: Exception) {
+            null
+        }
     }
 
     /** Strip characters that could cause header injection in Content-Disposition */
