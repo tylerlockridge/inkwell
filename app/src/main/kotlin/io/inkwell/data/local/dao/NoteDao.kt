@@ -11,19 +11,15 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface NoteDao {
     @Transaction
-    @Query("SELECT * FROM notes WHERE status = 'open' ORDER BY created DESC")
+    @Query("SELECT * FROM notes WHERE status = 'open' ORDER BY pinned DESC, created DESC")
     fun getInboxNotes(): Flow<List<NoteEntity>>
 
     @Transaction
-    @Query("SELECT * FROM notes WHERE status = 'open' AND kind != 'one_shot' ORDER BY created DESC")
-    fun getReviewQueue(): Flow<List<NoteEntity>>
-
-    @Transaction
-    @Query("SELECT * FROM notes WHERE pending_sync = 1 ORDER BY created DESC")
+    @Query("SELECT * FROM notes WHERE pending_sync = 1 ORDER BY pinned DESC, created DESC")
     fun getPendingSyncNotes(): Flow<List<NoteEntity>>
 
     @Transaction
-    @Query("SELECT * FROM notes WHERE status = 'open' AND (title LIKE '%' || :query || '%' OR body LIKE '%' || :query || '%') ORDER BY created DESC")
+    @Query("SELECT * FROM notes WHERE status = 'open' AND (title LIKE '%' || :query || '%' OR body LIKE '%' || :query || '%') ORDER BY pinned DESC, created DESC")
     fun searchNotes(query: String): Flow<List<NoteEntity>>
 
     /**
@@ -37,7 +33,7 @@ interface NoteDao {
         JOIN notes_fts ON notes.rowid = notes_fts.rowid
         WHERE notes_fts MATCH :query
         AND notes.status = 'open'
-        ORDER BY notes.created DESC
+        ORDER BY notes.pinned DESC, notes.created DESC
         """,
     )
     fun searchNotesFts(query: String): Flow<List<NoteEntity>>
@@ -66,6 +62,10 @@ interface NoteDao {
 
     @Query("UPDATE notes SET title = :title, body = :body, tags = :tags, updated = :updated, pending_sync = 1 WHERE uid = :uid")
     suspend fun updateContent(uid: String, title: String, body: String, tags: String, updated: String)
+
+    /** Local-only: update list item checked state. Does NOT mark pending_sync (server can't store this). */
+    @Query("UPDATE notes SET list_items_json = :listItemsJson, updated = :updated WHERE uid = :uid")
+    suspend fun updateListItemsJson(uid: String, listItemsJson: String?, updated: String)
 
     @Query("UPDATE notes SET pending_sync = 0, synced_at = :syncedAt, sync_error = NULL WHERE uid = :uid")
     suspend fun markSynced(uid: String, syncedAt: String)

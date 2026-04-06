@@ -175,6 +175,26 @@ class CaptureViewModel @Inject constructor(
         _uiState.update { it.copy(persistent = persistent) }
     }
 
+    /**
+     * Called when the capture was initiated from an Android share intent.
+     * Sets `shared = true` to mark the note as externally sourced.
+     */
+    fun onShareIntentReceived() {
+        _uiState.update { it.copy(shared = true) }
+    }
+
+    fun onPinnedToggle() {
+        _uiState.update { it.copy(pinned = !it.pinned) }
+    }
+
+    fun onSourceUrlChange(url: String) {
+        _uiState.update { it.copy(sourceUrl = url) }
+    }
+
+    fun onColorChange(color: CaptureColor?) {
+        _uiState.update { it.copy(color = color) }
+    }
+
     fun onBatchModeToggle() {
         _uiState.update { it.copy(batchMode = !it.batchMode) }
     }
@@ -207,7 +227,11 @@ class CaptureViewModel @Inject constructor(
 
     fun onCapture() {
         val state = _uiState.value
-        if (!state.isValid || state.isSubmitting) return
+        if (state.isSubmitting) return
+        if (!state.isValid) {
+            _uiState.update { it.copy(snackbarMessage = "Add some content to capture") }
+            return
+        }
 
         _uiState.update { it.copy(isSubmitting = true) }
 
@@ -216,7 +240,7 @@ class CaptureViewModel @Inject constructor(
                 CaptureType.TASK -> "task"
                 CaptureType.NOTE -> "note"
                 CaptureType.LIST -> "list_item"
-                CaptureType.IDEA -> "task"
+                CaptureType.IDEA -> "idea"
             }
             val body = when (state.captureType) {
                 CaptureType.LIST -> state.listItems
@@ -244,6 +268,10 @@ class CaptureViewModel @Inject constructor(
                 } else null,
                 persistent = if (state.captureType == CaptureType.LIST) state.persistent else null,
                 attachmentUris = state.selectedAttachments.map { it.toString() }.ifEmpty { null },
+                color = state.color?.hex,
+                pinned = if (state.pinned) true else null,
+                sourceUrl = state.sourceUrl.ifBlank { null },
+                shared = if (state.shared) true else null,
             )
 
             when (result) {

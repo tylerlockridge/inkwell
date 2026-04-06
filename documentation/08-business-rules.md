@@ -1,6 +1,6 @@
 # Feature: Business Rules Reference
 
-*Created: 2026-03-02 | Updated: 2026-03-02 | Project: Inkwell*
+*Created: 2026-03-02 | Updated: 2026-03-28 | Project: Inkwell*
 
 ---
 
@@ -81,9 +81,64 @@ Risk: Silent data loss if both sides were edited concurrently. No conflict is su
 - Deserialized with `Json { ignoreUnknownKeys = true }`
 - Unknown tag fields from server are silently ignored (schema evolution safety)
 
-**Rule 14 — FTS search threshold:**
+**Rule 14 — Capture validity (I13):**
+- Task/Note/Idea: valid if text is non-blank OR sourceUrl is non-blank OR attachments are present
+- List: valid if listName is non-blank AND at least one non-blank item line exists
+- Cosmetic metadata alone (pinned, color, tags, priority, calendar, kind, date) does NOT make a capture valid
+- Send button is disabled when invalid; snackbar "Add some content to capture" if onCapture() is called while invalid
+- 28 unit tests cover all edge cases (whitespace-only, URL-only, attachment-only, metadata-only, list with blank items)
+
+**Rule 15 — Pinned-first inbox ordering (I15):**
+- All inbox queries order by `pinned DESC, created DESC`
+- Pinned notes always appear above unpinned notes within the same view
+- Among pinned notes: newest first. Among unpinned notes: newest first.
+- Applies to: main inbox, pending tab, LIKE search, FTS search
+- In-memory tab filtering (by BrowseType) preserves the pinned-first ordering
+- 10 unit tests in `PinnedSortingTest`
+
+**Rule 16 — FTS search threshold:**
 - Queries of 3+ characters: use FTS4 full-text index
 - Queries of 1–2 characters: fall back to SQL `LIKE` query
+
+---
+
+## Browse / Navigation Rules
+
+**Rule 17 — Inbox type classification (BrowseType):**
+1. If `captureType` is non-null: map directly (`"task"` → TASK, `"note"` → NOTE, `"list_item"` → LIST, `"idea"` → IDEA)
+2. Else if `listName` or `listItemsJson` is non-blank → LIST
+3. Else if `kind == "note"` → NOTE
+4. Else if `kind == "brainstorming"` → IDEA
+5. Otherwise → TASK
+
+This heuristic exists because the server detail API does not return `captureType`. Locally captured notes have explicit types; synced-only notes fall back to steps 2–5.
+
+**Rule 18 — Inbox tab model:**
+- 6 tabs: All, Tasks, Notes, Lists, Ideas, Pending
+- Type tabs (Tasks/Notes/Lists/Ideas) filter the inbox Flow in-memory using BrowseType
+- Search applies within the selected tab's type filter (All/Pending search the full set)
+- Tab counts are derived from a single `getInboxNotes()` Flow grouped by BrowseType
+
+**Rule 19 — Review queue removed:**
+- The old `Review` tab (kind != 'one_shot') was replaced by explicit type tabs in I2
+- `NoteDao.getReviewQueue()` and `InboxRepository.getReviewQueue()` were removed
+
+**Rule 20 — Type-dispatched detail views:**
+- Detail screen dispatches to one of four layouts based on `browseType`:
+  - **Task:** body → tags → schedule (date/time/calendar) → status (priority, kind, source, GCal, sync)
+  - **Note:** body (prominent, 10-line edit) → tags → compact details (source, kind, sync)
+  - **List:** list header (name, persistent) → read-only checklist items → body → tags → compact details
+  - **Idea:** "Brainstorm / Idea" label → body (prominent, 8-line edit) → tags → compact details
+- Title, body, and tags remain editable across all types (NoteUpdateRequest supports these)
+- Schedule, priority, captureType, list items, and persistent are read-only (no server API support)
+
+**Rule 21 — Local checklist interaction:**
+- List detail checkboxes are tappable. Toggling updates local state immediately (optimistic UI).
+- Checked state persists in Room via `NoteDao.updateListItemsJson()`. Does NOT mark `pending_sync`.
+- Storage format: dual-format `listItemsJson` column — legacy `["a","b"]` reads as all unchecked; structured `[{"text":"a","checked":true}]` written on first toggle.
+- Sync preservation: `InboxSyncEngine` carries forward local `listItemsJson` during sync overwrites (server detail API does not return list items).
+- Visual: checked items show strikethrough + dimmed text. Header shows `N/M done` progress.
+- Cue: "Checklist state saved locally" label below items.
 
 ---
 
@@ -104,4 +159,11 @@ Risk: Silent data loss if both sides were edited concurrently. No conflict is su
 | Rule 11: Sync interval minimum (15 min) | ✅ PASS | WorkManager coerced |
 | Rule 12: Default kind = one_shot | ✅ PASS | |
 | Rule 13: Tag JSON with ignoreUnknownKeys | ✅ PASS | |
-| Rule 14: FTS threshold (3 chars) | ✅ PASS | |
+| Rule 14: Capture validity (I13) | ✅ PASS | 28 unit tests; send disabled when invalid |
+| Rule 15: Pinned-first inbox ordering (I15) | ✅ PASS | 10 unit tests; 4 SQL queries updated |
+| Rule 16: FTS threshold (3 chars) | ✅ PASS | |
+| Rule 17: BrowseType classification heuristic | ✅ PASS | 16 unit tests |
+| Rule 18: 6-tab inbox model | ✅ PASS | ScrollableTabRow |
+| Rule 19: Review queue removed | ✅ PASS | Replaced by type tabs |
+| Rule 20: Type-dispatched detail views | ✅ PASS | I3: layout adapts per BrowseType |
+| Rule 21: Local checklist interaction | ✅ PASS | I4: checkbox toggle, dual-format parse, 18 tests |

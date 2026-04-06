@@ -1,6 +1,6 @@
 # Feature: Testing Strategy
 
-*Created: 2026-03-02 | Updated: 2026-03-14 | Project: Inkwell*
+*Created: 2026-03-02 | Updated: 2026-03-28 | Project: Inkwell*
 
 ---
 
@@ -20,12 +20,12 @@ Covers unit testing of the data, repository, and sync worker layers plus instrum
 
 | Type | Count |
 |------|-------|
-| Unit test files | 36 |
+| Unit test files | 41 |
 | Instrumented test files | 4 |
-| **Total test files** | **40** |
-| Unit tests passing | 294+ |
+| **Total test files** | **45** |
+| Unit tests passing | 370+ |
 | Instrumented tests passing | 17 |
-| Estimated coverage | ~45% |
+| Estimated coverage | ~48% |
 
 ---
 
@@ -57,7 +57,7 @@ Covers unit testing of the data, repository, and sync worker layers plus instrum
 | `SyncScheduler` | SyncSchedulerTest | Schedule/cancel/trigger logic |
 | `SyncConflict` | SyncConflictTest | Timestamp comparison, Instant.parse semantics |
 | Auth / Biometric | BiometricAuthManagerTest, BuildConfigTest | BIOMETRIC_STRONG, token config |
-| DTOs | ApiDtoTest, CaptureRequestTest, GoogleAuthDtoTest, DeviceRegistrationTest | Serialization roundtrips |
+| DTOs | ApiDtoTest, CaptureRequestTest, DeviceRegistrationTest | Serialization roundtrips |
 | UI State | CaptureUiStateTest, InboxUiStateTest, SettingsUiStateTest, NoteDetailUiStateTest | State defaults, transitions |
 | Navigation | NavigationTest, DeepLinkTest, ScreenTest | Route parsing, deep link handling |
 | Notifications | NotificationActionReceiverTest, NotificationChannelsTest, CaptureMessagingServiceTest, CaptureMessagingTokenTest | Action routing, channel config |
@@ -107,11 +107,11 @@ Covers unit testing of the data, repository, and sync worker layers plus instrum
 
 | Item | Status | Notes |
 |------|--------|-------|
-| 36 unit test files (294+ tests) | PASS | Data, repository, worker, auth, navigation, notifications |
+| 41 unit test files (370+ tests) | PASS | Data, repository, worker, auth, navigation, notifications, Slice 3, share intent, capture validation, pinned sorting |
 | 4 instrumented test files (17 tests) | PASS | Capture, Inbox, Settings, HiltRunner |
 | JUnit 4 + MockK + Robolectric + Turbine + Hilt + Compose | PASS | Full test stack |
 | Room in-memory DB for DAO tests | PASS | |
-| ./gradlew test passing | PASS | |
+| ./gradlew test passing | PASS | Last verified 2026-03-28 |
 | ./gradlew lint passing | PASS | |
 | Kotlin compiler clean | PASS | |
 | Coverage >= 80% | TODO | ~45% estimated |

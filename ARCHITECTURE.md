@@ -25,7 +25,7 @@ self-hosted REST API (Obsidian Dashboard Desktop).
 ## Module Structure
 
 ```
-app/src/main/kotlin/com/obsidiancapture/
+app/src/main/kotlin/io/inkwell/
 ├── MainActivity.kt            # Entry point; delegates lock/sync to MainViewModel
 ├── MainViewModel.kt           # Biometric lock state + startup sync trigger
 ├── auth/                      # BiometricAuthManager

@@ -38,8 +38,14 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Tag
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
@@ -87,28 +93,31 @@ internal fun SmartToolbar(
     onEndTimeClear: () -> Unit,
     onCapture: () -> Unit,
     onBatchModeToggle: () -> Unit,
+    onPinnedToggle: () -> Unit = {},
+    onSourceUrlChange: (String) -> Unit = {},
+    onColorChange: (CaptureColor?) -> Unit = {},
     isSubmitting: Boolean,
     captureType: CaptureType = CaptureType.TASK,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
-        // Drag handle — bottom sheet affordance
+        // Drag handle
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 2.dp),
+                .padding(top = 6.dp, bottom = 2.dp),
             contentAlignment = Alignment.Center,
         ) {
             Box(
                 modifier = Modifier
-                    .width(32.dp)
-                    .height(4.dp)
+                    .width(28.dp)
+                    .height(3.dp)
                     .background(
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f),
                         RoundedCornerShape(2.dp),
                     ),
             )
@@ -195,6 +204,14 @@ internal fun SmartToolbar(
                     ToolbarPanel.Type -> TypePanel(state.kind, onKindChange)
                     ToolbarPanel.Calendar -> CalendarPanel(state.calendar, onCalendarChange)
                     ToolbarPanel.Priority -> PriorityPanel(state.priority, onPriorityChange)
+                    ToolbarPanel.Extras -> ExtrasPanel(
+                        pinned = state.pinned,
+                        sourceUrl = state.sourceUrl,
+                        color = state.color,
+                        onPinnedToggle = onPinnedToggle,
+                        onSourceUrlChange = onSourceUrlChange,
+                        onColorChange = onColorChange,
+                    )
                     null -> {}
                 }
             }
@@ -258,6 +275,14 @@ internal fun SmartToolbar(
                         isActive = state.activeToolbarPanel == ToolbarPanel.Tags,
                         hasSelection = state.selectedTags.isNotEmpty(),
                         onClick = { onToolbarPanelToggle(ToolbarPanel.Tags) },
+                    )
+                    // Extras (pin, color, source URL) — visible for all capture types
+                    CompactToolbarIcon(
+                        icon = Icons.Outlined.MoreHoriz,
+                        contentDescription = "Extras",
+                        isActive = state.activeToolbarPanel == ToolbarPanel.Extras,
+                        hasSelection = state.hasExtrasMetadata,
+                        onClick = { onToolbarPanelToggle(ToolbarPanel.Extras) },
                     )
                     // Schedule — hidden for NOTE and LIST
                     if (captureType == CaptureType.TASK) {
@@ -325,6 +350,7 @@ internal fun SmartToolbar(
             SendButton(
                 onCapture = onCapture,
                 isSubmitting = isSubmitting,
+                isValid = state.isValid,
                 captureType = captureType,
             )
         }
@@ -387,8 +413,10 @@ private fun CompactToolbarIcon(
 private fun SendButton(
     onCapture: () -> Unit,
     isSubmitting: Boolean,
+    isValid: Boolean = true,
     captureType: CaptureType = CaptureType.TASK,
 ) {
+    val enabled = !isSubmitting && isValid
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -402,7 +430,7 @@ private fun SendButton(
 
     FilledIconButton(
         onClick = onCapture,
-        enabled = !isSubmitting,
+        enabled = enabled,
         interactionSource = interactionSource,
         modifier = Modifier
             .size(52.dp)
@@ -567,6 +595,99 @@ private fun PriorityPanel(priority: String?, onPriorityChange: (String?) -> Unit
                 label = { Text(label) },
                 colors = consistentFilterChipColors,
             )
+        }
+    }
+}
+
+@Composable
+private fun ExtrasPanel(
+    pinned: Boolean,
+    sourceUrl: String,
+    color: CaptureColor?,
+    onPinnedToggle: () -> Unit,
+    onSourceUrlChange: (String) -> Unit,
+    onColorChange: (CaptureColor?) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Pin toggle
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Outlined.PushPin,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = if (pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "Pin to top",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.weight(1f))
+            Switch(
+                checked = pinned,
+                onCheckedChange = { onPinnedToggle() },
+            )
+        }
+
+        // Source URL
+        OutlinedTextField(
+            value = sourceUrl,
+            onValueChange = onSourceUrlChange,
+            placeholder = { Text("https://...", style = MaterialTheme.typography.bodySmall) },
+            leadingIcon = {
+                Icon(
+                    Icons.Outlined.Link,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+            },
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+        )
+
+        // Color picker
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            item {
+                // "None" option
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .border(
+                            width = if (color == null) 2.dp else 1.dp,
+                            color = if (color == null) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outlineVariant,
+                            shape = CircleShape,
+                        )
+                        .clickable { onColorChange(null) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "\u2013",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            items(CaptureColor.entries.toList()) { captureColor ->
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .background(captureColor.composeColor, CircleShape)
+                        .then(
+                            if (color == captureColor) {
+                                Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .clickable { onColorChange(captureColor) },
+                )
+            }
         }
     }
 }

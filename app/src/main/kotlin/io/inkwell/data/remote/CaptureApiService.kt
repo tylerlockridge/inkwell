@@ -13,16 +13,12 @@ import io.inkwell.data.remote.dto.InboxResponse
 import io.inkwell.data.remote.dto.NoteDetailResponse
 import io.inkwell.data.remote.dto.NoteUpdateRequest
 import io.inkwell.data.remote.dto.NoteUpdateResponse
-import io.inkwell.data.remote.dto.GoogleAuthRequest
-import io.inkwell.data.remote.dto.GoogleAuthResponse
 import io.inkwell.data.remote.dto.SyncthingStatusResponse
 import io.inkwell.data.remote.dto.SyncthingRestartResponse
 import io.inkwell.data.remote.dto.SystemStatusResponse
-import io.inkwell.di.UnauthenticatedClient
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
-import io.ktor.client.statement.bodyAsText
 import io.ktor.client.request.forms.ChannelProvider
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData
@@ -37,7 +33,6 @@ import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.utils.io.jvm.javaio.toByteReadChannel
-import io.inkwell.BuildConfig
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -45,7 +40,6 @@ import javax.inject.Singleton
 @Singleton
 class CaptureApiService @Inject constructor(
     private val httpClient: HttpClient,
-    @UnauthenticatedClient private val unauthenticatedClient: HttpClient,
     private val json: Json,
 ) {
     suspend fun capture(baseUrl: String, request: CaptureRequest): CaptureResponse {
@@ -235,26 +229,4 @@ class CaptureApiService @Inject constructor(
         }.body()
     }
 
-    suspend fun exchangeGoogleToken(baseUrl: String, idToken: String): Result<String> {
-        return try {
-            val httpResponse = unauthenticatedClient.post("$baseUrl/api/auth/google") {
-                contentType(ContentType.Application.Json)
-                setBody(GoogleAuthRequest(idToken))
-            }
-            val bodyText = httpResponse.bodyAsText()
-            // Only log in debug builds — response body contains the JWT token
-            if (BuildConfig.DEBUG) {
-                android.util.Log.d("GoogleSignIn", "Exchange response: ${httpResponse.status.value}")
-            }
-
-            if (httpResponse.status.value !in 200..299) {
-                return Result.failure(Exception("Server error ${httpResponse.status}: $bodyText"))
-            }
-
-            val response = json.decodeFromString<GoogleAuthResponse>(bodyText)
-            Result.success(response.token)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
 }

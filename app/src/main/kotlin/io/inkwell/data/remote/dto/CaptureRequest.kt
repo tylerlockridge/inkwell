@@ -19,4 +19,9 @@ data class CaptureRequest(
     val listName: String? = null,
     val items: List<String>? = null,
     val persistent: Boolean? = null,
+    // Slice 3 fields
+    val color: String? = null,
+    val pinned: Boolean? = null,
+    val sourceUrl: String? = null,
+    val shared: Boolean? = null,
 )

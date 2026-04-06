@@ -1,5 +1,6 @@
 package io.inkwell
 
+import io.inkwell.data.local.entity.BrowseType
 import io.inkwell.ui.inbox.InboxTab
 import io.inkwell.ui.inbox.InboxUiState
 import org.junit.Assert.assertEquals
@@ -42,10 +43,41 @@ class InboxUiStateTest {
     }
 
     @Test
-    fun `all three tabs exist`() {
-        assertEquals(3, InboxTab.entries.size)
+    fun `all six tabs exist in correct order`() {
+        assertEquals(6, InboxTab.entries.size)
         assertEquals("All", InboxTab.All.name)
-        assertEquals("Review", InboxTab.Review.name)
+        assertEquals("Tasks", InboxTab.Tasks.name)
+        assertEquals("Notes", InboxTab.Notes.name)
+        assertEquals("Lists", InboxTab.Lists.name)
+        assertEquals("Ideas", InboxTab.Ideas.name)
         assertEquals("Pending", InboxTab.Pending.name)
+    }
+
+    @Test
+    fun `tab browseType mapping`() {
+        assertNull(InboxTab.All.browseType)
+        assertEquals(BrowseType.TASK, InboxTab.Tasks.browseType)
+        assertEquals(BrowseType.NOTE, InboxTab.Notes.browseType)
+        assertEquals(BrowseType.LIST, InboxTab.Lists.browseType)
+        assertEquals(BrowseType.IDEA, InboxTab.Ideas.browseType)
+        assertNull(InboxTab.Pending.browseType)
+    }
+
+    @Test
+    fun `countForTab returns correct counts`() {
+        val state = InboxUiState(
+            allCount = 10,
+            taskCount = 4,
+            noteCount = 3,
+            listCount = 2,
+            ideaCount = 1,
+            pendingSyncCount = 5,
+        )
+        assertEquals(10, state.countForTab(InboxTab.All))
+        assertEquals(4, state.countForTab(InboxTab.Tasks))
+        assertEquals(3, state.countForTab(InboxTab.Notes))
+        assertEquals(2, state.countForTab(InboxTab.Lists))
+        assertEquals(1, state.countForTab(InboxTab.Ideas))
+        assertEquals(5, state.countForTab(InboxTab.Pending))
     }
 }

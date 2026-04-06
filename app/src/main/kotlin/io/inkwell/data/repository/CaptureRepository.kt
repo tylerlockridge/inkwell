@@ -55,11 +55,19 @@ class CaptureRepository @Inject constructor(
         items: List<String>? = null,
         persistent: Boolean? = null,
         attachmentUris: List<String>? = null,
+        // Slice 3 fields
+        color: String? = null,
+        pinned: Boolean? = null,
+        sourceUrl: String? = null,
+        shared: Boolean? = null,
     ): CaptureResult {
         val clientUuid = UUID.randomUUID().toString()
         val now = Instant.now().toString()
 
         val attachmentUrisJson = attachmentUris?.takeIf { it.isNotEmpty() }
+            ?.let { Json.encodeToString(ListSerializer(String.serializer()), it) }
+
+        val listItemsJson = items?.takeIf { it.isNotEmpty() }
             ?.let { Json.encodeToString(ListSerializer(String.serializer()), it) }
 
         val request = CaptureRequest(
@@ -78,11 +86,15 @@ class CaptureRepository @Inject constructor(
             listName = listName,
             items = items,
             persistent = persistent,
+            color = color,
+            pinned = pinned,
+            sourceUrl = sourceUrl,
+            shared = shared,
         )
 
         val serverUrl = preferencesManager.serverUrl.first()
         if (serverUrl.isBlank()) {
-            return saveOffline(request, clientUuid, now, attachmentUrisJson)
+            return saveOffline(request, clientUuid, now, attachmentUrisJson, listItemsJson)
         }
 
         return try {
@@ -114,6 +126,14 @@ class CaptureRepository @Inject constructor(
                     pendingSync = false,
                     clientUuid = clientUuid,
                     attachmentUris = attachmentUrisJson,
+                    captureType = captureType,
+                    listName = listName,
+                    listItemsJson = listItemsJson,
+                    persistent = persistent ?: false,
+                    color = color,
+                    pinned = pinned ?: false,
+                    sourceUrl = sourceUrl,
+                    shared = shared ?: false,
                 )
             )
             updateWidgets()
@@ -121,7 +141,7 @@ class CaptureRepository @Inject constructor(
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             if (BuildConfig.DEBUG) Log.i(TAG, "Network unavailable, saving offline: ${e.javaClass.simpleName}")
-            saveOffline(request, clientUuid, now, attachmentUrisJson)
+            saveOffline(request, clientUuid, now, attachmentUrisJson, listItemsJson)
         }
     }
 
@@ -130,6 +150,7 @@ class CaptureRepository @Inject constructor(
         clientUuid: String,
         now: String,
         attachmentUrisJson: String? = null,
+        listItemsJson: String? = null,
     ): CaptureResult {
         val tempUid = "pending_$clientUuid"
         noteDao.upsert(
@@ -150,6 +171,14 @@ class CaptureRepository @Inject constructor(
                 pendingSync = true,
                 clientUuid = clientUuid,
                 attachmentUris = attachmentUrisJson,
+                captureType = request.captureType,
+                listName = request.listName,
+                listItemsJson = listItemsJson,
+                persistent = request.persistent ?: false,
+                color = request.color,
+                pinned = request.pinned ?: false,
+                sourceUrl = request.sourceUrl,
+                shared = request.shared ?: false,
             )
         )
         updateWidgets()

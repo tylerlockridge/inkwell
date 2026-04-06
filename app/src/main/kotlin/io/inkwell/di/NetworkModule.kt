@@ -15,12 +15,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
-import javax.inject.Qualifier
 import javax.inject.Singleton
-
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class UnauthenticatedClient
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -56,8 +51,8 @@ object NetworkModule {
                         if (token.isNotBlank()) BearerTokens(token, "") else null
                     }
                     refreshTokens {
-                        // Re-read token from prefs — it may have been updated by
-                        // a Google Sign-In re-auth flow in the UI
+                        // Re-read token from prefs — it may have been updated
+                        // by the user in Settings
                         val token = preferencesManager.authToken.first()
                         if (token.isNotBlank()) BearerTokens(token, "") else null
                     }
@@ -67,19 +62,4 @@ object NetworkModule {
         }
     }
 
-    @Provides
-    @Singleton
-    @UnauthenticatedClient
-    fun provideUnauthenticatedHttpClient(json: Json): HttpClient {
-        return HttpClient(OkHttp) {
-            install(ContentNegotiation) {
-                json(json)
-            }
-            install(HttpTimeout) {
-                connectTimeoutMillis = CONNECT_TIMEOUT_MS
-                requestTimeoutMillis = REQUEST_TIMEOUT_MS
-                socketTimeoutMillis = SOCKET_TIMEOUT_MS
-            }
-        }
-    }
 }

@@ -11,7 +11,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import io.inkwell.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,7 +47,7 @@ class PreferencesManager @Inject constructor(
     private val initScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /** Reactive auth token state — updated by [setAuthToken] and init migration */
-    private val _authToken = MutableStateFlow(BuildConfig.DEFAULT_AUTH_TOKEN)
+    private val _authToken = MutableStateFlow("")
 
     init {
         // One-time migration from plaintext DataStore → EncryptedSharedPreferences,
@@ -59,8 +58,7 @@ class PreferencesManager @Inject constructor(
                 encryptedPrefs.edit().putString(ENCRYPTED_AUTH_TOKEN_KEY, dataStoreToken).apply()
                 context.dataStore.edit { prefs -> prefs.remove(authTokenKey) }
             }
-            val stored = encryptedPrefs.getString(ENCRYPTED_AUTH_TOKEN_KEY, BuildConfig.DEFAULT_AUTH_TOKEN)
-                ?: BuildConfig.DEFAULT_AUTH_TOKEN
+            val stored = encryptedPrefs.getString(ENCRYPTED_AUTH_TOKEN_KEY, "") ?: ""
             _authToken.value = stored
         }
     }
@@ -160,7 +158,7 @@ class PreferencesManager @Inject constructor(
         // Ensure no plaintext copy remains in DataStore
         context.dataStore.edit { prefs -> prefs.remove(authTokenKey) }
         // Update reactive StateFlow so all collectors see the change immediately
-        _authToken.value = if (token.isBlank()) BuildConfig.DEFAULT_AUTH_TOKEN else token
+        _authToken.value = token
     }
 
     suspend fun setSyncIntervalMinutes(minutes: Long) {

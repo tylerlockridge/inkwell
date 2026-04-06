@@ -36,10 +36,6 @@
 -keep class * extends androidx.work.Worker
 -keep class * extends androidx.work.CoroutineWorker
 
-# Google Identity (Credential Manager)
--keep class com.google.android.libraries.identity.googleid.** { *; }
--keep class androidx.credentials.** { *; }
-
 # DataStore Preferences
 -keep class androidx.datastore.preferences.** { *; }
 

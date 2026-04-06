@@ -110,6 +110,8 @@ class MainActivity : FragmentActivity() {
                         initialRoute = initialRoute,
                         sharedText = shareData?.text,
                         sharedTitle = shareData?.title,
+                        sharedSourceUrl = shareData?.sourceUrl,
+                        isFromShareIntent = shareData != null,
                     )
                 }
             }

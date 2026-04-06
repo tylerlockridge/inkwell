@@ -24,8 +24,6 @@ class InboxRepository @Inject constructor(
 ) {
     fun getInboxNotes(): Flow<List<NoteEntity>> = noteDao.getInboxNotes()
 
-    fun getReviewQueue(): Flow<List<NoteEntity>> = noteDao.getReviewQueue()
-
     fun getPendingSyncNotes(): Flow<List<NoteEntity>> = noteDao.getPendingSyncNotes()
 
     fun searchNotes(query: String): Flow<List<NoteEntity>> {
@@ -113,6 +111,16 @@ class InboxRepository @Inject constructor(
             syncScheduler.triggerImmediateUpload()
             true
         }
+    }
+
+    /**
+     * Local-only: persist updated list item checked state.
+     * Does NOT mark the note as pending sync — the server update API
+     * cannot store list item state.
+     */
+    suspend fun updateListItemsJson(uid: String, listItemsJson: String?) {
+        val now = Instant.now().toString()
+        noteDao.updateListItemsJson(uid, listItemsJson, now)
     }
 
     companion object {

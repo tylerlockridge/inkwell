@@ -3,6 +3,7 @@ package io.inkwell.ui.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.inkwell.data.local.entity.ChecklistItems
 import io.inkwell.data.local.entity.NoteEntity
 import io.inkwell.data.repository.InboxRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -87,6 +88,27 @@ class NoteDetailViewModel @Inject constructor(
 
     fun onSnackbarDismissed() {
         _uiState.update { it.copy(snackbarMessage = null) }
+    }
+
+    /**
+     * Toggle the checked state of a checklist item at [index].
+     * Local-only — the server update API cannot store list item state.
+     */
+    fun onToggleListItem(index: Int) {
+        val note = _uiState.value.note ?: return
+        val items = ChecklistItems.parse(note.listItemsJson)
+        val toggled = ChecklistItems.toggle(items, index)
+        val newJson = ChecklistItems.serialize(toggled)
+
+        // Optimistic UI update
+        _uiState.update {
+            it.copy(note = note.copy(listItemsJson = newJson))
+        }
+
+        // Persist to Room
+        viewModelScope.launch {
+            inboxRepository.updateListItemsJson(uid, newJson)
+        }
     }
 
     private fun saveEdits() {

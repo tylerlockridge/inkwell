@@ -38,6 +38,14 @@ data class NoteEntity(
     @ColumnInfo(name = "client_uuid") val clientUuid: String? = null,
     @ColumnInfo(name = "sync_error") val syncError: String? = null,
     @ColumnInfo(name = "attachment_uris") val attachmentUris: String? = null,
+    @ColumnInfo(name = "capture_type") val captureType: String? = null,
+    @ColumnInfo(name = "list_name") val listName: String? = null,
+    @ColumnInfo(name = "list_items_json") val listItemsJson: String? = null,
+    @ColumnInfo(name = "persistent") val persistent: Boolean = false,
+    @ColumnInfo(name = "color") val color: String? = null,
+    @ColumnInfo(name = "pinned") val pinned: Boolean = false,
+    @ColumnInfo(name = "source_url") val sourceUrl: String? = null,
+    @ColumnInfo(name = "shared") val shared: Boolean = false,
 ) {
     companion object {
         private val tagJson = Json { ignoreUnknownKeys = true }

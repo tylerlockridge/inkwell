@@ -27,10 +27,6 @@ android {
         versionName = "2.4.0"
 
         testInstrumentationRunner = "io.inkwell.HiltTestRunner"
-
-        // Personal app — bake in defaults so the app works on install without any setup.
-        val defaultAuthToken = System.getenv("CAPTURE_AUTH_TOKEN") ?: localProps.getProperty("CAPTURE_AUTH_TOKEN") ?: ""
-        buildConfigField("String", "DEFAULT_AUTH_TOKEN", "\"$defaultAuthToken\"")
     }
 
     signingConfigs {
@@ -158,11 +154,6 @@ dependencies {
 
     // Security
     implementation(libs.security.crypto)
-
-    // Google Sign-In (Credential Manager)
-    implementation(libs.credentials)
-    implementation(libs.credentials.play)
-    implementation(libs.googleid)
 
     // Firebase
     implementation(platform(libs.firebase.bom))

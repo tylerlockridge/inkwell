@@ -13,11 +13,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Refresh
@@ -40,6 +40,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,9 +52,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.inkwell.ui.theme.StatusError
-import io.inkwell.ui.theme.StatusGcal
 import io.inkwell.ui.theme.StatusPending
 import io.inkwell.ui.theme.StatusSynced
 
@@ -77,7 +78,15 @@ fun SystemHealthScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("System Health") },
+                title = {
+                    Text(
+                        "System Health",
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.5).sp,
+                        ),
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -88,6 +97,9 @@ fun SystemHealthScreen(
                         Icon(Icons.Outlined.Refresh, contentDescription = "Refresh")
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -108,10 +120,10 @@ fun SystemHealthScreen(
                     .padding(innerPadding)
                     .padding(horizontal = 16.dp)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                // Server Health Card
-                SectionHeader("Server")
+                // Server
+                SectionLabel("Server")
                 HealthCard {
                     StatusRow("Status", state.serverStatus, statusColor(state.serverStatus))
                     StatusRow("Version", state.version)
@@ -124,8 +136,8 @@ fun SystemHealthScreen(
                     }
                 }
 
-                // Inbox Summary Card
-                SectionHeader("Inbox")
+                // Inbox Summary
+                SectionLabel("Inbox")
                 HealthCard {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -137,28 +149,30 @@ fun SystemHealthScreen(
                     }
                 }
 
-                // GCal Sync Card
-                SectionHeader("Google Calendar")
+                // Google Calendar
+                SectionLabel("Google Calendar")
                 HealthCard {
                     StatusRow("Last Sync", state.gcalLastSync ?: "Never")
                     StatusRow("Errors", state.gcalErrors.toString(),
                         if (state.gcalErrors > 0) StatusError else StatusSynced)
                 }
 
-                // Syncthing Card
+                // Syncthing
                 if (state.syncthingEnabled) {
-                    SectionHeader("Syncthing")
+                    SectionLabel("Syncthing")
                     HealthCard {
+                        // Status header
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Canvas(modifier = Modifier.size(10.dp)) {
+                            Canvas(modifier = Modifier.size(8.dp)) {
                                 drawCircle(color = if (state.syncthingReachable) StatusSynced else StatusError)
                             }
+                            Spacer(Modifier.width(8.dp))
                             Text(
                                 text = if (state.syncthingReachable) "Reachable" else "Unreachable",
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                                 color = if (state.syncthingReachable) StatusSynced else StatusError,
                             )
                             if (state.syncthingVersion.isNotEmpty()) {
@@ -166,44 +180,38 @@ fun SystemHealthScreen(
                                 Text(
                                     text = state.syncthingVersion,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.outlineVariant,
                                 )
                             }
                         }
 
                         if (state.syncthingReachable && state.syncthingUptime > 0) {
-                            Text(
-                                text = "Uptime: ${formatUptime(state.syncthingUptime)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            StatusRow("Uptime", formatUptime(state.syncthingUptime))
                         }
 
                         // Devices
                         if (state.syncthingDevices.isNotEmpty()) {
-                            Spacer(Modifier.height(4.dp))
-                            HorizontalDivider()
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                "Devices",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                            SubsectionLabel("Devices")
                             state.syncthingDevices.forEach { device ->
                                 Row(
-                                    modifier = Modifier.padding(vertical = 2.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    Canvas(modifier = Modifier.size(6.dp)) {
-                                        drawCircle(color = if (device.connected) StatusSynced else StatusError)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    ) {
+                                        Canvas(modifier = Modifier.size(6.dp)) {
+                                            drawCircle(color = if (device.connected) StatusSynced else StatusError)
+                                        }
+                                        Text(device.name, style = MaterialTheme.typography.bodySmall)
                                     }
-                                    Text(device.name, style = MaterialTheme.typography.bodyMedium)
-                                    Spacer(Modifier.weight(1f))
                                     Text(
                                         if (device.connected) "Connected" else "Offline",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (device.connected) StatusSynced else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (device.connected) StatusSynced else MaterialTheme.colorScheme.outlineVariant,
                                     )
                                 }
                             }
@@ -211,37 +219,32 @@ fun SystemHealthScreen(
 
                         // Folders
                         if (state.syncthingFolders.isNotEmpty()) {
-                            Spacer(Modifier.height(4.dp))
-                            HorizontalDivider()
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                "Folders",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                            SubsectionLabel("Folders")
                             state.syncthingFolders.forEach { folder ->
                                 Column(modifier = Modifier.padding(vertical = 2.dp)) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                     ) {
-                                        Text(folder.label, style = MaterialTheme.typography.bodyMedium)
+                                        Text(folder.label, style = MaterialTheme.typography.bodySmall)
                                         Text(
                                             "${folder.completion}%",
-                                            style = MaterialTheme.typography.labelSmall,
+                                            style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
+                                    Spacer(Modifier.height(2.dp))
                                     LinearProgressIndicator(
                                         progress = { folder.completion / 100f },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(4.dp),
+                                            .height(3.dp),
                                     )
                                     if (folder.errors > 0) {
                                         Text(
                                             "${folder.errors} error(s)",
-                                            style = MaterialTheme.typography.labelSmall,
+                                            style = MaterialTheme.typography.bodySmall,
                                             color = StatusError,
                                         )
                                     }
@@ -250,25 +253,23 @@ fun SystemHealthScreen(
                         }
 
                         // Restart button
-                        Spacer(Modifier.height(8.dp))
-                        HorizontalDivider()
-                        Spacer(Modifier.height(8.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                         FilledTonalButton(
                             onClick = { showRestartDialog = true },
                             enabled = state.syncthingReachable && !state.isRestarting,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().height(40.dp),
                         ) {
                             if (state.isRestarting) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
+                                    modifier = Modifier.size(14.dp),
                                     strokeWidth = 2.dp,
                                 )
-                                Spacer(Modifier.width(8.dp))
-                                Text("Restarting...")
+                                Spacer(Modifier.width(6.dp))
+                                Text("Restarting...", style = MaterialTheme.typography.labelMedium)
                             } else {
-                                Icon(Icons.Outlined.RestartAlt, contentDescription = null)
-                                Spacer(Modifier.width(8.dp))
-                                Text("Restart Syncthing")
+                                Icon(Icons.Outlined.RestartAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Restart Syncthing", style = MaterialTheme.typography.labelMedium)
                             }
                         }
                     }
@@ -298,13 +299,35 @@ fun SystemHealthScreen(
     }
 }
 
+// =============================================================================
+// Health screen building blocks
+// =============================================================================
+
 @Composable
-private fun SectionHeader(text: String) {
+private fun SectionLabel(title: String) {
     Text(
-        text = text,
-        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+        text = title.uppercase(),
+        style = MaterialTheme.typography.labelSmall.copy(
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp,
+            fontSize = 11.sp,
+        ),
+        color = MaterialTheme.colorScheme.outline,
+        modifier = Modifier.padding(top = 4.dp),
+    )
+}
+
+@Composable
+private fun SubsectionLabel(title: String) {
+    Text(
+        title,
+        style = MaterialTheme.typography.labelSmall.copy(
+            fontWeight = FontWeight.Bold,
+            fontSize = 10.sp,
+            letterSpacing = 0.5.sp,
+        ),
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(bottom = 4.dp),
+        modifier = Modifier.padding(top = 2.dp),
     )
 }
 
@@ -312,13 +335,14 @@ private fun SectionHeader(text: String) {
 private fun HealthCard(content: @Composable () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             content()
         }
@@ -331,22 +355,33 @@ private fun StatusRow(
     value: String,
     dotColor: androidx.compose.ui.graphics.Color? = null,
 ) {
+    val isPlaceholder = value == "Never" || value == "unknown" || value == "0" || value == "0 MB"
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             if (dotColor != null) {
-                Canvas(modifier = Modifier.size(8.dp)) {
+                Canvas(modifier = Modifier.size(6.dp)) {
                     drawCircle(color = dotColor)
                 }
             }
-            Text(value, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                value,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = if (isPlaceholder) FontWeight.Normal else FontWeight.Medium,
+                ),
+                color = if (isPlaceholder) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.onSurface,
+            )
         }
     }
 }
@@ -362,10 +397,17 @@ private fun StatBlock(
             icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(24.dp),
+            modifier = Modifier.size(18.dp),
         )
-        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            value,
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+        )
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

@@ -1,6 +1,6 @@
 # Feature: Deployment & Release
 
-*Created: 2026-03-02 | Updated: 2026-03-02 | Project: Inkwell*
+*Created: 2026-03-02 | Updated: 2026-03-26 | Project: Inkwell*
 
 ---
 
@@ -34,12 +34,15 @@ Describes the build system, SDK targets, release configuration, signing, CI/CD s
 | R8 minification | Enabled |
 | ProGuard rules | Applied for data classes (prevents stripping) |
 | Signing | Release signing config in `build.gradle.kts` (keystore path TBD per environment) |
-| APK output | `obsidian-capture-*.apk` in project root (versioned) |
+| APK output | `app/build/outputs/apk/release/app-release.apk` |
+| Package | `io.inkwell` |
 
-Known APK artifacts (tracked in git root):
+Historical APK artifacts (pre-rename, may exist in git root):
 - `obsidian-capture-2.1.0-release.apk`
 - `obsidian-capture-2.1.1-release.apk`
 - `obsidian-capture-2.1.2-release.apk`
+
+These use the old `com.obsidiancapture` package. Current builds produce `io.inkwell` APKs.
 
 ---
 
@@ -62,7 +65,7 @@ Known APK artifacts (tracked in git root):
 
 ## Room Schema Migration Tracking
 
-Room schema is exported to the `schema/` directory and committed to git. This ensures that:
+Room schema is exported to the `app/schemas/` directory and committed to git. This ensures that:
 - Migration history is auditable
 - Incompatible schema changes are detectable at code review
 - Automated migration tests can reference the exported schema

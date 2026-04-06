@@ -41,6 +41,8 @@ fun CaptureNavHost(
     initialRoute: String? = null,
     sharedText: String? = null,
     sharedTitle: String? = null,
+    sharedSourceUrl: String? = null,
+    isFromShareIntent: Boolean = false,
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -108,6 +110,8 @@ fun CaptureNavHost(
                 CaptureScreen(
                     sharedText = sharedText,
                     sharedTitle = sharedTitle,
+                    sharedSourceUrl = sharedSourceUrl,
+                    isFromShareIntent = isFromShareIntent,
                     onNavigateToSettings = {
                         navController.navigate(Screen.Settings.route) {
                             popUpTo(navController.graph.findStartDestination().id) {

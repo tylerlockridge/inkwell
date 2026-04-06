@@ -3,8 +3,12 @@ package io.inkwell.sync
 import android.util.Log
 import io.inkwell.data.local.PreferencesManager
 import io.inkwell.data.local.dao.NoteDao
+import io.inkwell.data.local.entity.ChecklistItem
+import io.inkwell.data.local.entity.ChecklistItems
 import io.inkwell.data.local.entity.NoteEntity
 import io.inkwell.data.remote.CaptureApiService
+import io.inkwell.data.remote.dto.CaptureMetadata
+import io.inkwell.data.remote.dto.NoteDetailResponse
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -62,6 +66,8 @@ class InboxSyncEngine @Inject constructor(
                 async {
                     try {
                         val detail = apiService.getNote(serverUrl, item.uid)
+                        val existing = localNoteMap[item.uid]
+                        val resolved = resolveCaptureMetadata(detail, existing)
                         NoteEntity(
                             uid = detail.uid,
                             title = detail.frontmatter.title ?: "",
@@ -82,6 +88,15 @@ class InboxSyncEngine @Inject constructor(
                             updated = detail.frontmatter.updated,
                             syncedAt = now,
                             pendingSync = false,
+                            captureType = resolved.captureType,
+                            listName = resolved.listName,
+                            listItemsJson = resolved.listItemsJson,
+                            persistent = resolved.persistent,
+                            // Slice 3: shared from server metadata; color/pinned/sourceUrl local-only
+                            color = existing?.color,
+                            pinned = existing?.pinned ?: false,
+                            sourceUrl = existing?.sourceUrl,
+                            shared = resolved.shared,
                         )
                     } catch (e: Exception) {
                         if (e is kotlinx.coroutines.CancellationException) throw e
@@ -142,6 +157,69 @@ class InboxSyncEngine @Inject constructor(
             true
         }
     }
+
+    /**
+     * Resolve local captureType/list metadata from server detail response.
+     *
+     * If the server provides [CaptureMetadata], use it as source of truth.
+     * Otherwise fall back to any existing local metadata (pre-I7 behavior).
+     *
+     * ## Idea normalization
+     * The server canonically represents ideas as `captureType = "task"` with
+     * `kind = "brainstorming"`. This method normalizes that to local
+     * `captureType = "idea"` so the BrowseType classifier routes them correctly.
+     */
+    internal fun resolveCaptureMetadata(
+        detail: NoteDetailResponse,
+        existing: NoteEntity?,
+    ): ResolvedCaptureMetadata {
+        val meta = detail.captureMetadata
+        if (meta != null) {
+            // Normalize server's canonical idea representation
+            val localCaptureType = if (
+                meta.captureType == "task" && detail.frontmatter.kind == "brainstorming"
+            ) "idea" else meta.captureType
+
+            // Serialize structured list items to local ChecklistItem format,
+            // but preserve local checked state if items haven't changed
+            val serverItemsJson = meta.items?.takeIf { it.isNotEmpty() }?.let { serverItems ->
+                val localItems = existing?.listItemsJson?.let { ChecklistItems.parse(it) } ?: emptyList()
+                val merged = serverItems.map { serverItem ->
+                    val localMatch = localItems.find { it.text == serverItem.text }
+                    ChecklistItem(
+                        text = serverItem.text,
+                        checked = localMatch?.checked ?: serverItem.checked,
+                    )
+                }
+                ChecklistItems.serialize(merged)
+            }
+
+            return ResolvedCaptureMetadata(
+                captureType = localCaptureType,
+                listName = meta.listName,
+                listItemsJson = serverItemsJson ?: existing?.listItemsJson,
+                persistent = meta.persistent ?: existing?.persistent ?: false,
+                shared = meta.shared ?: existing?.shared ?: false,
+            )
+        }
+
+        // No captureMetadata from server — preserve local values (pre-I7 fallback)
+        return ResolvedCaptureMetadata(
+            captureType = existing?.captureType,
+            listName = existing?.listName,
+            listItemsJson = existing?.listItemsJson,
+            persistent = existing?.persistent ?: false,
+            shared = existing?.shared ?: false,
+        )
+    }
+
+    data class ResolvedCaptureMetadata(
+        val captureType: String?,
+        val listName: String?,
+        val listItemsJson: String?,
+        val persistent: Boolean,
+        val shared: Boolean,
+    )
 
     companion object {
         private const val TAG = "InboxSyncEngine"

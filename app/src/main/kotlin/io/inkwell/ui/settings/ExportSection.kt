@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material3.Card
@@ -25,10 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 
-/**
- * Export section for Settings screen.
- * Uses ACTION_CREATE_DOCUMENT to let user pick save location.
- */
 @Composable
 fun ExportSection(
     isExporting: Boolean,
@@ -51,43 +49,44 @@ fun ExportSection(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 OutlinedButton(
                     onClick = { jsonLauncher.launch("inkwell-export-$today.json") },
                     enabled = !isExporting,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).height(40.dp),
                 ) {
                     if (isExporting) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
                     } else {
-                        Icon(Icons.Outlined.FileDownload, contentDescription = null)
+                        Icon(Icons.Outlined.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp))
                     }
-                    Spacer(Modifier.width(8.dp))
-                    Text("Export JSON")
+                    Spacer(Modifier.width(6.dp))
+                    Text("JSON", style = MaterialTheme.typography.labelMedium)
                 }
 
                 OutlinedButton(
                     onClick = { csvLauncher.launch("inkwell-export-$today.csv") },
                     enabled = !isExporting,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).height(40.dp),
                 ) {
                     if (isExporting) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
                     } else {
-                        Icon(Icons.Outlined.FileDownload, contentDescription = null)
+                        Icon(Icons.Outlined.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp))
                     }
-                    Spacer(Modifier.width(8.dp))
-                    Text("Export CSV")
+                    Spacer(Modifier.width(6.dp))
+                    Text("CSV", style = MaterialTheme.typography.labelMedium)
                 }
             }
 

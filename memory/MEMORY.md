@@ -9,7 +9,7 @@
   - `./gradlew --stop` to stop daemons first
 
 ## Architecture
-- Package: `com.obsidiancapture` | Min SDK 26, Target SDK 35
+- Package: `io.inkwell` | Min SDK 26, Target SDK 35
 - MVVM + Hilt DI | Jetpack Compose UI | Room + Ktor
 - Navigation: CaptureNavHost → default start = CaptureScreen
 
@@ -32,7 +32,7 @@ ui/inbox/InboxScreen.kt        — inbox with swipe-to-dismiss
   kspAndroidTest(libs.hilt.compiler)
   ```
 - libs.versions.toml: `espresso-core = { module = "androidx.test.espresso:espresso-core", version = "3.7.0" }` and `runner = "1.7.0"`
-- testInstrumentationRunner must be `"com.obsidiancapture.HiltTestRunner"`
+- testInstrumentationRunner must be `"io.inkwell.HiltTestRunner"`
 - Test classes need `@HiltAndroidTest` + `@get:Rule val hiltRule = HiltAndroidRule(this)` (order=0, before composeRule at order=1)
 
 ## Hilt + WorkManager + Instrumented Tests

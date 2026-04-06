@@ -66,6 +66,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.inkwell.R
@@ -83,6 +84,8 @@ import java.time.format.DateTimeFormatter
 fun CaptureScreen(
     sharedText: String? = null,
     sharedTitle: String? = null,
+    sharedSourceUrl: String? = null,
+    isFromShareIntent: Boolean = false,
     onNavigateToSettings: () -> Unit = {},
     viewModel: CaptureViewModel = hiltViewModel(),
 ) {
@@ -96,7 +99,7 @@ fun CaptureScreen(
     }
 
     // Pre-fill from share intent (one-time)
-    LaunchedEffect(sharedText, sharedTitle) {
+    LaunchedEffect(sharedText, sharedTitle, sharedSourceUrl) {
         if (sharedText != null || sharedTitle != null) {
             val prefill = buildString {
                 if (sharedTitle != null) appendLine(sharedTitle)
@@ -105,6 +108,12 @@ fun CaptureScreen(
             if (prefill.isNotBlank()) {
                 viewModel.onUnifiedTextChange(prefill)
             }
+        }
+        if (sharedSourceUrl != null) {
+            viewModel.onSourceUrlChange(sharedSourceUrl)
+        }
+        if (isFromShareIntent) {
+            viewModel.onShareIntentReceived()
         }
     }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -172,6 +181,9 @@ fun CaptureScreen(
                 onEndTimeClear = { viewModel.onEndTimeChange(null) },
                 onCapture = viewModel::onCapture,
                 onBatchModeToggle = viewModel::onBatchModeToggle,
+                onPinnedToggle = viewModel::onPinnedToggle,
+                onSourceUrlChange = viewModel::onSourceUrlChange,
+                onColorChange = viewModel::onColorChange,
                 isSubmitting = state.isSubmitting,
                 captureType = state.captureType,
             )
@@ -193,7 +205,7 @@ fun CaptureScreen(
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
             ) {
                 CaptureType.entries.forEachIndexed { index, type ->
                     SegmentedButton(
@@ -287,13 +299,13 @@ fun CaptureScreen(
 
             when (state.captureType) {
                 CaptureType.TASK, CaptureType.NOTE, CaptureType.IDEA -> {
-                    // Writing surface — card with ghost watermark behind transparent TextField
+                    // Writing surface
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                            .clip(RoundedCornerShape(16.dp))
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                            .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                     ) {
                         if (state.unifiedText.isBlank()) {
@@ -315,28 +327,29 @@ fun CaptureScreen(
                                     Text(
                                         text = "Title",
                                         style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold,
                                             fontSize = 18.sp,
-                                            letterSpacing = (-0.2).sp,
+                                            letterSpacing = (-0.3).sp,
                                         ),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
                                     )
-                                    Spacer(Modifier.height(6.dp))
+                                    Spacer(Modifier.height(4.dp))
                                     Text(
                                         text = when (state.captureType) {
                                             CaptureType.NOTE -> "Write your note..."
                                             CaptureType.IDEA -> "Capture your idea..."
                                             else -> "What's on your mind?"
                                         },
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f),
                                     )
                                 }
                             },
                             modifier = Modifier
                                 .fillMaxSize()
                                 .focusRequester(focusRequester),
-                            textStyle = MaterialTheme.typography.bodyLarge.copy(lineHeight = 26.sp),
-                            shape = RoundedCornerShape(16.dp),
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
+                            shape = RoundedCornerShape(12.dp),
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent,
@@ -418,6 +431,9 @@ fun CaptureScreen(
                 onDateClear = { viewModel.onDateChange(null) },
                 onStartTimeClear = { viewModel.onStartTimeChange(null) },
                 onEndTimeClear = { viewModel.onEndTimeChange(null) },
+                onPinnedClear = viewModel::onPinnedToggle,
+                onSourceUrlClear = { viewModel.onSourceUrlChange("") },
+                onColorClear = { viewModel.onColorChange(null) },
             )
         }
     }
@@ -428,23 +444,21 @@ private fun ConnectionHint(onNavigateToSettings: () -> Unit, onDismiss: () -> Un
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f))
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             Icons.Outlined.CloudOff,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = MaterialTheme.colorScheme.onErrorContainer,
             modifier = Modifier.size(16.dp),
         )
         Spacer(Modifier.width(8.dp))
         Text(
-            text = "Tap Settings to connect",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            text = "Not connected",
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+            color = MaterialTheme.colorScheme.onErrorContainer,
             modifier = Modifier.weight(1f),
         )
         TextButton(
@@ -452,16 +466,16 @@ private fun ConnectionHint(onNavigateToSettings: () -> Unit, onDismiss: () -> Un
             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
         ) {
             Text(
-                "Settings",
+                "Settings \u2192",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f),
             )
         }
         IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
             Icon(
                 Icons.Filled.Close,
                 contentDescription = "Dismiss",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                tint = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.5f),
                 modifier = Modifier.size(14.dp),
             )
         }
@@ -479,6 +493,9 @@ private fun ActiveMetadataChips(
     onDateClear: () -> Unit,
     onStartTimeClear: () -> Unit = {},
     onEndTimeClear: () -> Unit = {},
+    onPinnedClear: () -> Unit = {},
+    onSourceUrlClear: () -> Unit = {},
+    onColorClear: () -> Unit = {},
 ) {
     val hasMetadata = state.selectedTags.isNotEmpty() ||
         state.kind != "one_shot" ||
@@ -486,7 +503,8 @@ private fun ActiveMetadataChips(
         state.priority != null ||
         state.date != null ||
         state.startTime != null ||
-        state.endTime != null
+        state.endTime != null ||
+        state.hasExtrasMetadata
 
     if (!hasMetadata) return
 
@@ -494,9 +512,9 @@ private fun ActiveMetadataChips(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .padding(top = 2.dp, bottom = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(top = 2.dp, bottom = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         state.selectedTags.forEach { tag ->
             DismissibleChip(
@@ -526,6 +544,19 @@ private fun ActiveMetadataChips(
         if (state.endTime != null) {
             DismissibleChip(label = "End: ${state.endTime}", onDismiss = onEndTimeClear)
         }
+        if (state.pinned) {
+            DismissibleChip(label = "Pinned", onDismiss = onPinnedClear)
+        }
+        if (state.sourceUrl.isNotBlank()) {
+            val displayUrl = state.sourceUrl
+                .removePrefix("https://")
+                .removePrefix("http://")
+                .take(25)
+            DismissibleChip(label = displayUrl, onDismiss = onSourceUrlClear)
+        }
+        if (state.color != null) {
+            DismissibleChip(label = state.color.label, onDismiss = onColorClear)
+        }
     }
 }
 
@@ -537,7 +568,7 @@ private fun DismissibleChip(
     AssistChip(
         onClick = onDismiss,
         label = {
-            Text(label, style = MaterialTheme.typography.labelSmall)
+            Text(label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp))
         },
         trailingIcon = {
             Icon(

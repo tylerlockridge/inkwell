@@ -3,6 +3,8 @@ package io.inkwell.ui.inbox
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.inkwell.data.local.PreferencesManager
+import io.inkwell.data.local.entity.BrowseType
+import io.inkwell.data.local.entity.browseType
 import io.inkwell.data.repository.InboxRepository
 import io.inkwell.data.repository.SyncResult
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -11,7 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -34,7 +36,7 @@ class InboxViewModel @Inject constructor(
         observeTabCounts()
         viewModelScope.launch { inboxRepository.syncInbox() }
 
-        // Reactively watch server configuration (updates when Google Sign-In saves token)
+        // Reactively watch server configuration
         viewModelScope.launch {
             combine(
                 preferencesManager.serverUrl,
@@ -51,19 +53,24 @@ class InboxViewModel @Inject constructor(
     }
 
     private fun observeTabCounts() {
+        // All type counts derived from the single inbox query
+        viewModelScope.launch {
+            inboxRepository.getInboxNotes().collect { notes ->
+                val grouped = notes.groupingBy { it.browseType }.eachCount()
+                _uiState.update {
+                    it.copy(
+                        allCount = notes.size,
+                        taskCount = grouped[BrowseType.TASK] ?: 0,
+                        noteCount = grouped[BrowseType.NOTE] ?: 0,
+                        listCount = grouped[BrowseType.LIST] ?: 0,
+                        ideaCount = grouped[BrowseType.IDEA] ?: 0,
+                    )
+                }
+            }
+        }
         viewModelScope.launch {
             inboxRepository.pendingSyncCount.collect { count ->
                 _uiState.update { it.copy(pendingSyncCount = count) }
-            }
-        }
-        viewModelScope.launch {
-            inboxRepository.getInboxNotes().collect { notes ->
-                _uiState.update { it.copy(allCount = notes.size) }
-            }
-        }
-        viewModelScope.launch {
-            inboxRepository.getReviewQueue().collect { notes ->
-                _uiState.update { it.copy(reviewCount = notes.size) }
             }
         }
     }
@@ -80,9 +87,12 @@ class InboxViewModel @Inject constructor(
         if (query.isNotBlank()) {
             searchObserverJob?.cancel()
             searchObserverJob = viewModelScope.launch {
-                inboxRepository.searchNotes(query).collect { notes ->
-                    _uiState.update { it.copy(notes = notes) }
-                }
+                val typeFilter = _uiState.value.selectedTab.browseType
+                inboxRepository.searchNotes(query)
+                    .maybeFilterByType(typeFilter)
+                    .collect { notes ->
+                        _uiState.update { it.copy(notes = notes) }
+                    }
             }
         } else {
             searchObserverJob?.cancel()
@@ -134,12 +144,22 @@ class InboxViewModel @Inject constructor(
 
     private suspend fun observeTab(tab: InboxTab) {
         val flow = when (tab) {
-            InboxTab.All -> inboxRepository.getInboxNotes()
-            InboxTab.Review -> inboxRepository.getReviewQueue()
             InboxTab.Pending -> inboxRepository.getPendingSyncNotes()
+            else -> {
+                val typeFilter = tab.browseType
+                inboxRepository.getInboxNotes().maybeFilterByType(typeFilter)
+            }
         }
         flow.collect { notes ->
             _uiState.update { it.copy(notes = notes) }
         }
     }
 }
+
+/**
+ * If [type] is non-null, filter the list to only notes matching that [BrowseType].
+ * If null (All tab), pass through unfiltered.
+ */
+private fun kotlinx.coroutines.flow.Flow<List<io.inkwell.data.local.entity.NoteEntity>>.maybeFilterByType(
+    type: BrowseType?,
+) = if (type == null) this else map { notes -> notes.filter { it.browseType == type } }

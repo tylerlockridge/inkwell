@@ -45,3 +45,6 @@ keys/
 # Release APKs (binary artifacts)
 *.apk
 *.idsig
+
+# Claude Code session artifacts
+.claude/

@@ -1,8 +1,71 @@
 # Inkwell + Nexus Platform — Codex Audit Brief
 
 **Created:** 2026-03-15
+**Last Updated:** 2026-03-15 (Pass 2 verified findings)
 **Purpose:** Shared context document for cross-model audits (Codex, Gemini, Claude). Provides the complete picture of the Inkwell Android app and the Nexus server platform it connects to.
 **Audience:** Any LLM performing code review, security audit, architecture analysis, or feature planning.
+
+---
+
+## 0. Audit Handoff Status
+
+This file is the Codex <-> Claude <-> GPT-5.4 Pro audit coordination document. It is intended to be the single authoritative handoff file for future audit, research, and remediation-planning work.
+
+Use order:
+
+1. `COMPREHENSIVE-AUDIT-FINDINGS.md` is the authoritative Pass 2 verification source.
+2. This brief is the normalized handoff and navigation layer.
+3. `COMPREHENSIVE-AUDIT-PASS1.md` is discovery history, not the final state.
+4. `PROJECT.md` files provide session chronology and operational context.
+
+When any older snapshot text below conflicts with Pass 2, trust the Pass 2 findings and the normalized statements in this brief.
+
+### 0.1 Primary Audit Artifacts
+
+- **Pass 2 verified findings:** `C:\Users\tyler\Documents\Claude Projects\Inkwell\COMPREHENSIVE-AUDIT-FINDINGS.md`
+- **Pass 1 discovery report:** `C:\Users\tyler\Documents\Claude Projects\Inkwell\COMPREHENSIVE-AUDIT-PASS1.md`
+- **Inkwell session context:** `C:\Users\tyler\Documents\Claude Projects\Inkwell\PROJECT.md`
+- **Nexus session context:** `C:\Users\tyler\Documents\Claude Projects\Obsidian-Dashboard-Desktop\PROJECT.md`
+
+### 0.2 Current Open Findings
+
+| ID | Severity | Title | Status |
+|---|---|---|---|
+| F-001 | Critical | Android app still embeds and silently falls back to a shared bearer token | Design trade-off |
+| F-002 | Critical | Chrome extension ships/stores bearer token and requests broad host access | Open |
+| F-003 | High | Multipart capture is lossy and contract-inconsistent across Android, web, extension, and server | Open |
+| F-004 | High | Attachment files can be written under a UID that does not match the final note UID | Open |
+| F-005 | High | Schedule metadata is not persisted end-to-end | Open |
+| F-006 | High | Processor cold-start indexing still ignores notes | Partially mitigated |
+| F-007 | High | SPA task and note views expect fields that `/api/inbox` does not provide | Open |
+| F-008 | High | Web offline queue still drops attachments | Open |
+| F-009 | High | nginx still blocks attachment sizes the app and server are designed to support | Open |
+| F-010 | Medium | Android device registration is not retried on normal startup after failure | Open |
+| F-011 | Medium | List read/update path is mutating and effectively last-write-wins | Open |
+| F-012 | Low | Google auth/client-context story is stale and internally inconsistent | Partially mitigated |
+
+### 0.3 Do Not Re-Audit as Open
+
+- `sendWithoutRequest { true }` was re-checked in Pass 2 and is **not** an open finding without new evidence.
+- Production timezone in `infra/config.yaml` remains a follow-up question, not a confirmed defect.
+- Older assumptions that nginx had already been raised to 50 MB were disproven by Pass 2; use the current `infra/nginx.conf`, not session-memory assumptions.
+- Historical findings previously marked resolved should not be reintroduced as open unless new code evidence reopens them.
+
+### 0.4 Latest Verified Status (Pass 2)
+
+Final verified result: 12 findings total, split across 2 Critical, 7 High, 2 Medium, and 1 Low. The dominant risks are shared credentials, cross-client capture contract drift, and deployment/API inconsistencies that silently change behavior between clients or environments. The strongest areas remain Inkwell's local-first storage/sync foundation, server-side defensive intent, and Docker hardening.
+
+### 0.5 High-Value Verification Files
+
+- `C:\Users\tyler\Documents\Claude Projects\Inkwell\app\src\main\kotlin\io\inkwell\data\local\PreferencesManager.kt`
+- `C:\Users\tyler\Documents\Claude Projects\Inkwell\app\src\main\kotlin\io\inkwell\data\remote\CaptureApiService.kt`
+- `C:\Users\tyler\Documents\Claude Projects\Obsidian-Dashboard-Desktop\src\capture-server.ts`
+- `C:\Users\tyler\Documents\Claude Projects\Obsidian-Dashboard-Desktop\src\api-server.ts`
+- `C:\Users\tyler\Documents\Claude Projects\Obsidian-Dashboard-Desktop\src\registry.ts`
+- `C:\Users\tyler\Documents\Claude Projects\Obsidian-Dashboard-Desktop\src\scanner.ts`
+- `C:\Users\tyler\Documents\Claude Projects\Obsidian-Dashboard-Desktop\capture-extension\manifest.json`
+- `C:\Users\tyler\Documents\Claude Projects\Obsidian-Dashboard-Desktop\capture-extension\background.js`
+- `C:\Users\tyler\Documents\Claude Projects\Obsidian-Dashboard-Desktop\infra\nginx.conf`
 
 ---
 
@@ -42,8 +105,8 @@ Inkwell is the Android companion app for **Nexus**, a personal productivity plat
 | HTTP Client | Ktor (OkHttp engine) |
 | Database | Room (SQLite) with FTS4 |
 | Background Work | WorkManager (periodic + one-shot) |
-| Auth | Bearer token (EncryptedSharedPreferences) + optional Google Sign-In |
-| Deep Links | `inkwell://capture`, `inkwell://inbox`, `inkwell://settings`, `inkwell://health` |
+| Auth | Bearer token in EncryptedSharedPreferences with shared `DEFAULT_AUTH_TOKEN` fallback baked into the APK; stale Google-auth code/docs remain |
+| Deep Links | `inkwell://capture`, `inkwell://inbox`, `inkwell://note/{uid}`, `inkwell://system-health` |
 | App Links | `https://tyler-capture.duckdns.org/app/*` (autoVerify) |
 | Repo | https://github.com/tylerlockridge/inkwell |
 
@@ -150,7 +213,9 @@ Inkwell/
 - Files streamed via Ktor `ChannelProvider` (no full in-memory load)
 - `resolveFileSize()` via `OpenableColumns.SIZE` or `AssetFileDescriptor`
 - Falls back to `readBytes()` if size unknown
-- Server accepts up to 25MB per file, 50MB total (nginx: 50MB `client_max_body_size`)
+- Client-side upload code supports larger files, but Pass 2 verified two open issues:
+  - the multipart capture contract is not equivalent to the JSON capture contract (`F-003`)
+  - `infra/nginx.conf` still limits the main capture host to `client_max_body_size 1m` (`F-009`)
 
 ### 2.4 Test Coverage
 
@@ -164,6 +229,8 @@ Inkwell/
 
 ### 2.5 Audit History
 
+Historical audit/fix log only. Do not use older "resolved" wording below as the current open/closed state; use Section 0 and `COMPREHENSIVE-AUDIT-FINDINGS.md`.
+
 | Date | Provider(s) | Score | Key Findings |
 |------|-------------|-------|-------------|
 | 2026-02-26 | Codex (GPT-4o) | 6.3/10 | Zero instrumented tests, large files, allowBackup=true |
@@ -172,16 +239,17 @@ Inkwell/
 | 2026-03-06 | Codex 5.3 | 8.6/10 | Auth header bug (sendWithoutRequest), serialization catch |
 | 2026-03-14 | Gemini 3.1 + Codex x2 | 7.0/10 | 12 findings (all resolved): attachment routing, timestamp comparison, N+1 |
 | 2026-03-15 | Claude (deep composite) | — | 10 items (all resolved): InboxSyncEngine extraction, reactive auth, streaming uploads |
+| 2026-03-15 | Codex Pass 1 | — | Discovery report: 11 confirmed findings, 5 follow-up verification items |
+| 2026-03-15 | Codex Pass 2 | — | Final verified state: 12 findings (2 Critical, 7 High, 2 Medium, 1 Low) |
 
-### 2.6 Recent Changes (This Session — 2026-03-15)
+### 2.6 Current Validated State (Most Relevant to Remediation)
 
-1. **InboxSyncEngine** extracted — shared sync logic eliminates code drift between SyncWorker and InboxRepository
-2. **Reactive authToken** — `MutableStateFlow` replaces one-shot `flow{}`
-3. **Camera permission** — runtime request before `IMAGE_CAPTURE` intent
-4. **Nginx 50MB** — `client_max_body_size` bumped from 1MB
-5. **Streaming uploads** — `ChannelProvider` replaces `readBytes()`
-6. **Widget polish** — Material You, rounded cards, tonal buttons, pending sync badges
-7. **Package rename** — `com.obsidiancapture` → `io.inkwell`, scheme `inkwell://`
+1. **Shared-token fallback remains active** — `BuildConfig.DEFAULT_AUTH_TOKEN` is still the Android fallback path (`F-001`).
+2. **Android local-first sync foundation is strong** — `InboxSyncEngine`, transactional pending-note replacement, and Room/FTS remain strengths.
+3. **Attachment-backed capture is still not contract-safe** — multipart upload loses metadata that JSON capture preserves (`F-003`).
+4. **Device registration recovery remains incomplete** — normal app startup still does not retry server registration (`F-010`).
+5. **Deep links are `capture`, `inbox`, `note/{uid}`, and `system-health`** — older `settings` / `health` references should be treated as stale.
+6. **Google auth is not a clean active Android flow** — server behavior is cookie-oriented, while Android still contains stale token-exchange code/docs (`F-012`).
 
 ---
 
@@ -196,7 +264,7 @@ Inkwell/
 | Runtime | Node.js 22+ |
 | Database | SQLite (better-sqlite3, WAL mode) |
 | Web Framework | Vanilla Node.js HTTP (no Express/Fastify) |
-| Testing | Vitest (1366 passing tests, 65 test files) |
+| Testing | Vitest (PROJECT.md records 1,405 passing backend tests as of 2026-03-15) |
 | Deployment | Docker Compose (9 containers) on 1GB DigitalOcean droplet |
 | Domain | tyler-capture.duckdns.org |
 | Repo | https://github.com/tylerlockridge/claude-projects (subdirectory) |
@@ -225,11 +293,17 @@ Inkwell/
 | PATCH | `/api/note/:uid` | Bearer | Update fields (status, title, body, tags) |
 | GET | `/api/capture/defaults` | Bearer | Smart defaults (suggested tags, calendar) |
 | GET | `/api/status` | Bearer | System health (processor, worker, syncthing) |
-| POST | `/api/auth/google` | None | Google Sign-In token exchange |
+| POST | `/api/auth/google` | None | Google ID token verification; server sets `capture_auth` cookie and returns `{ success: true }` |
 | POST | `/api/device/register` | Bearer | FCM device registration |
 | DELETE | `/api/device/:id` | Bearer | Unregister device |
 | GET | `/healthz` | None | Health check |
 | GET | `/.well-known/assetlinks.json` | None | Android App Links verification |
+
+Important Pass 2 caveats:
+
+- `/api/capture` JSON and multipart are not currently contract-equivalent (`F-003`, `F-004`, `F-005`).
+- `/api/inbox` is a summary feed and does not currently satisfy SPA task/note view assumptions (`F-007`).
+- `/api/auth/google` is currently a browser-oriented cookie path; Android still has stale token-exchange expectations in older client code/docs (`F-012`).
 
 ### 3.4 Chrome Extension
 
@@ -240,9 +314,13 @@ Inkwell/
 |-----------|------|---------|
 | Service Worker | `background.js` | Lifecycle, message routing, context menus |
 | Side Panel | `sidepanel.html/js` | Capture form (auto-populates page title, URL, selection) |
-| Options | `options.html/js` | Server URL + auth token config |
+| Options | `options.html/js` | Server URL + auth token config persisted via `chrome.storage.sync` |
 
-**Flow:** User clicks extension → side panel opens → form pre-filled → POST /api/capture → notification
+Current audited posture:
+
+- The extension seeds and reads a bearer token from `chrome.storage.sync` (`F-002`).
+- `manifest.json` requests broader host access than the deployed capture flow needs (`F-002`).
+- Attachment-backed extension capture also inherits the shared multipart contract problems (`F-003`).
 
 ### 3.5 Web SPA (PWA)
 
@@ -258,7 +336,13 @@ Inkwell/
 | `/ideas` | — | Ideas vault section |
 | `/settings` | — | Theme, auth, PWA install |
 
-**Features:** Offline queue (IndexedDB), dark mode, PWA installable, connection awareness banner
+**Features:** Offline queue for JSON captures (IndexedDB), dark mode, PWA installable, connection awareness banner
+
+Current audited posture:
+
+- Offline queue support is not attachment-safe; attachment-backed captures are not preserved for replay (`F-008`).
+- `/tasks` and `/notes` currently expect fields not supplied by `/api/inbox` summary responses (`F-007`).
+- `/lists` currently uses a mutating PATCH workaround to read list contents because there is no dedicated GET detail route (`F-011`).
 
 ### 3.6 Docker Architecture (droplet)
 
@@ -288,12 +372,12 @@ Inkwell/
 
 ### 3.7 Security Model
 
-- **Auth:** Bearer token + optional Google Sign-In + cookie fallback
+- **Auth:** Shared bearer token model is still active in Android + extension; server also supports cookie auth fallback for browser flows; Android Google token-return path is stale/inconsistent
 - **Rate limiting:** 600 req/min API, 30 req/min capture, 60 req/min webhook, 10 auth failures/5min
 - **Docker:** `cap_drop: ALL`, `no-new-privileges: true`, 127.0.0.1 binding (except nginx)
 - **TLS:** TLSv1.2+, HSTS, X-Frame-Options: DENY, X-Content-Type-Options: nosniff
 - **SQLite:** WAL mode, FK enforcement, path traversal guards
-- **Secrets:** All in `.env` on droplet, never committed
+- **Secrets:** Server-side secrets live in `.env` on the droplet, but the capture bearer token is currently distributed to Android and the Chrome extension (`F-001`, `F-002`), so it should not be described as a server-only secret in practice
 
 ---
 
@@ -340,6 +424,13 @@ Inkwell/
        │                              └──────────────────┘
 ```
 
+Current verified breakpoints in this flow:
+
+- **Capture contract drift:** attachment-backed multipart capture does not preserve the same metadata as JSON capture (`F-003`, `F-005`).
+- **Attachment commit integrity:** files can be saved under a temporary UID before the final note UID is known (`F-004`).
+- **Registry completeness:** note indexing is incomplete after cold start until note files change (`F-006`).
+- **API summary/detail mismatch:** SPA task/note surfaces assume richer `/api/inbox` data than the registry summary currently returns (`F-007`).
+
 ---
 
 ## 5. Key File Locations for Audit
@@ -363,6 +454,7 @@ Inkwell/
 | Biometric auth | `app/src/main/kotlin/io/inkwell/auth/BiometricAuthManager.kt` |
 | FCM handler | `app/src/main/kotlin/io/inkwell/notifications/CaptureMessagingService.kt` |
 | Widgets | `app/src/main/kotlin/io/inkwell/widget/` |
+| Startup registration | `app/src/main/kotlin/io/inkwell/CaptureApp.kt` + `app/src/main/kotlin/io/inkwell/notifications/DeviceRegistrationManager.kt` |
 
 ### Nexus Server
 
@@ -377,11 +469,14 @@ Inkwell/
 | SQLite registry | `src/registry.ts` |
 | Config parser | `src/config.ts` |
 | Token encryption | `src/token-manager.ts` |
+| Attachment validation | `src/attachment-handler.ts` |
 | Docker config | `infra/docker-compose.yml` |
 | Nginx config | `infra/nginx.conf` |
 | App config | `infra/config.yaml` |
-| Chrome extension | `capture-extension/` |
-| Web SPA | `src/capture-web/public/` |
+| Chrome extension manifest | `capture-extension/manifest.json` |
+| Chrome extension auth/bootstrap | `capture-extension/background.js` + `capture-extension/options.js` + `capture-extension/sidepanel.js` |
+| Web SPA capture/offline queue | `src/capture-web/public/js/form.js` + `src/capture-web/public/js/offline-queue.js` |
+| Web SPA tasks/notes/lists | `src/capture-web/public/js/views/tasks-view.js` + `src/capture-web/public/js/views/notes-view.js` + `src/capture-web/public/js/views/lists-view.js` |
 
 ---
 
@@ -407,7 +502,7 @@ Inkwell UI screenshots are available in the project root:
 ```
 28c6b4d refactor: rename package com.obsidiancapture → io.inkwell
 cbc32df feat: stream attachment uploads + Material You widget polish
-83b216d fix: deep audit — InboxSyncEngine, reactive auth, camera permission, nginx 50MB
+83b216d fix: deep audit — InboxSyncEngine, reactive auth, camera permission, streaming uploads (the nginx 50MB claim was later disproven by Pass 2 verification)
 398d448 fix: resolve all 12 LLM audit findings (3-provider pipeline)
 37a994d chore: bump version to 2.3.0 (versionCode 11)
 c2634a2 feat: attachment upload — send multipart/form-data when captures have attachments
@@ -426,34 +521,83 @@ Session 2026-03-10: Nexus Web SPA, Dashboard UX v3, Security Hardening
 Session 2026-03-06: LLM Audit #3 — 12 findings all resolved
 ```
 
----
-
-## 8. Known Issues & Technical Debt
-
-| # | Component | Issue | Severity |
-|---|-----------|-------|----------|
-| 1 | Server | assetlinks.json test expects old package name (1 failing test) | Low |
-| 2 | Inkwell | `google-services.json` still references Firebase project `obsidian-capture-11a09` — needs new app for `io.inkwell` in Firebase Console | Medium |
-| 3 | Inkwell | Windows Defender locks Gradle build intermediates (recurring) | Low (dev-only) |
-| 4 | Server | `docker compose build` maxes 1GB droplet during `npm ci` (better-sqlite3 native build) | Low |
-| 5 | Inkwell | `NotificationActionReceiver.scope` never cancelled (BroadcastReceiver lifecycle) | Low |
-| 6 | Server | registry.ts is 32k lines — candidate for decomposition | Medium |
+These commit/session notes are historical context only. They do not override the current open-finding table in Section 0. Pass 2 specifically disproved some older assumptions, including the nginx upload-size claim and the coherence of the current auth story.
 
 ---
 
-## 9. Audit Focus Recommendations
+## 8. Important Unknowns & Secondary Context
 
-For a comprehensive audit, prioritize:
+### 8.1 Follow-up Questions Requiring Runtime Validation
 
-1. **API contract alignment** — Do Inkwell DTOs match server response shapes exactly? Are there edge cases where the server returns unexpected JSON?
-2. **Auth token lifecycle** — Token stored in APK BuildConfig, EncryptedSharedPrefs, and sent via Ktor bearer auth. Verify no leaks in logs/crash reports.
-3. **Sync correctness** — Last-write-wins conflict resolution, tombstone sweep, pending note protection during sync. Race conditions between SyncWorker and manual pull-to-refresh.
-4. **Error handling** — CancellationException propagation, 401/413/5xx handling, network timeout behavior.
-5. **Server security** — Rate limiting bypass vectors, path traversal in capture/attachment handling, SQL injection in registry queries.
-6. **Chrome extension** — Content Security Policy, host permission scope, credential storage in `chrome.storage`.
-7. **Docker security** — Container escape vectors, secret management, volume mount permissions.
-8. **Performance** — Concurrent detail fetch fan-out (no limit), SQLite WAL contention under load, attachment streaming memory profile.
+- Is `C:\Users\tyler\Documents\Claude Projects\Obsidian-Dashboard-Desktop\infra\config.yaml` intentionally set to `America/Los_Angeles`, or is that stale production configuration affecting schedule semantics?
+- Once nginx upload limits are corrected, does `src/capture-server.ts` full-body multipart buffering create unacceptable memory pressure under concurrent uploads?
+- How often does the cold-start note indexing gap surface in the deployed processor lifecycle after real restarts?
+- What is the actual conflict frequency for list edits and other concurrent multi-client mutations, and is explicit conflict UX needed or is conditional write/versioning enough?
+- Do Android authenticated requests ever cross redirects or proxies in a way that broadens proactive bearer exposure, or is the current `baseUrl` usage sufficient in practice?
+
+### 8.2 Secondary Operational Context (Not Part of the Final Open-Finding Set)
+
+- Firebase/app-registration cleanup around `google-services.json` may still matter operationally for the `io.inkwell` package, but it was not carried as a Pass 2 open audit finding.
+- Windows Defender locking Gradle intermediates and 1 GB droplet build-memory pressure remain useful environment notes, but they are operational constraints rather than final platform audit findings.
+- Historical package-name and asset-links transition work may still appear in older session notes; do not treat those as current open issues unless fresh test or runtime evidence reopens them.
 
 ---
 
-*This document should be updated after each audit cycle with new findings and resolutions.*
+## 9. Research Focus Recommendations
+
+Future research and planning should stay aligned to the verified Pass 2 findings:
+
+1. **Auth and session architecture modernization** - focus on removing shipped shared credentials and clarifying browser/mobile/extension auth boundaries (`F-001`, `F-002`, `F-012`).
+2. **Capture schema and multipart unification** - define one canonical capture contract across JSON, multipart, Android, SPA, and extension (`F-003`, `F-005`).
+3. **Attachment integrity and upload-envelope alignment** - fix UID sequencing and align proxy/server/client upload behavior (`F-004`, `F-009`).
+4. **Registry and background reliability** - close cold-start indexing gaps, device-registration recovery gaps, and mutation-concurrency gaps (`F-006`, `F-010`, `F-011`).
+5. **API shape and product-surface cleanup** - separate summary/detail shapes intentionally and remove misleading or half-supported surfaces (`F-007`, `F-008`, `F-011`, `F-012`).
+6. **Observability and contract testing** - add cross-client contract coverage, reverse-proxy E2E checks, and runtime diagnostics for degraded flows (`F-003` through `F-010`).
+
+---
+
+## 10. Next-Step Remediation Handoff
+
+This section is the immediate planning bridge for Claude Code after research-prompt generation.
+
+### Track A - Auth and Credential Modernization
+
+- **Priority:** Immediate
+- **Targets:** Android `BuildConfig.DEFAULT_AUTH_TOKEN` fallback, extension token bootstrap/storage, browser/mobile enrollment model, revocation and rotation story, stale Google-auth surface cleanup
+- **Related finding IDs:** `F-001`, `F-002`, `F-012`
+
+### Track B - Capture Contract Unification
+
+- **Priority:** Immediate
+- **Targets:** canonical capture schema, JSON/multipart parity, note/task/list/schedule field handling, contract tests across Android/SPA/extension/server
+- **Related finding IDs:** `F-003`, `F-005`
+
+### Track C - Attachment Integrity and Upload Path Alignment
+
+- **Priority:** Immediate
+- **Targets:** final-UID-before-write sequencing, attachment staging/commit model, proxy/server/client upload envelope alignment, user-facing error behavior for rejected uploads
+- **Related finding IDs:** `F-004`, `F-009`
+
+### Track D - Registry and Background Reliability
+
+- **Priority:** Near-term
+- **Targets:** cold-start note indexing, startup device-registration retry, list read/write separation, conditional writes or versioning for concurrent mutations
+- **Related finding IDs:** `F-006`, `F-010`, `F-011`
+
+### Track E - API Shape and Product Surface Cleanup
+
+- **Priority:** Near-term
+- **Targets:** `/api/inbox` summary vs detail DTO split, SPA task/note/list behavior cleanup, offline attachment UX decision, removal or formal deprecation of stale auth/product surfaces
+- **Related finding IDs:** `F-007`, `F-008`, `F-011`, `F-012`
+
+### Research should answer
+
+- What is the minimum-friction replacement for shipped shared credentials that still fits a self-hosted single-user deployment model?
+- What canonical capture schema should exist across JSON and multipart, and where should that schema be enforced so clients cannot drift?
+- Should attachments be staged until the final note UID is known, or should the system move to a different attachment identity model entirely?
+- What reliability model should govern registry rebuilds, startup repair, and background self-healing for device registration and note indexing?
+- Which client surfaces should consume summary DTOs versus detail DTOs, and which product surfaces should be simplified or deferred until the core capture-sync path is stable?
+
+---
+
+*This document should be updated after each audit cycle so the open-finding table, follow-up questions, and remediation handoff remain aligned with the latest verified findings.*
