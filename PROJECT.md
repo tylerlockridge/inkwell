@@ -1,6 +1,7 @@
 ---
 status: Active
-phase: Standalone project — separated from Obsidian-Dashboard-Desktop 2026-02-26
+phase: Inkwell Daily Driver v1 D2 defined
+dashboardVisible: true
 sourcePath: "C:\\Users\\tyler\\Documents\\Claude Projects\\Inkwell"
 repoUrl: "https://github.com/tylerlockridge/inkwell"
 repoSubdir: ""
@@ -16,8 +17,67 @@ ralphRuns: 1
 Android app for capturing notes/tasks directly to an Obsidian vault inbox via a REST API.
 Communicates with the Obsidian Dashboard Desktop server running on a DigitalOcean droplet.
 
-<!-- QUICK-RESUME-UPDATED: 2026-03-28 I17-phase-closed -->
 ## Quick Resume
+**What this is:** Inkwell is the Android daily-driver app for Tyler's Nexus system: quick notes, tasks, lists, ideas, and share-intent capture into the Obsidian workflow.
+**Current phase:** Inkwell Daily Driver v1 D2 defined.
+**Current focus:** Attach approved design-tool output for D2 Type-First Capture Refinement, then implement against the verified D1 shell.
+**Next action:** Save the approved D2 capture-design material in this repo and use `documentation/20-daily-driver-v1-slice-2-type-first-capture-refinement.md` as the implementation packet.
+**Review state:** D1 navigation shell code and visual proof are complete; the misplaced Dashboard handoff has been localized into Inkwell docs.
+**Verification:** Latest implementation proof 2026-04-22: `./gradlew --no-daemon test`, `./gradlew --no-daemon lint`, `./gradlew --no-daemon assembleRelease`, and `./gradlew --no-daemon installDebug` passed. Visual proof captured on `Medium_Phone_API_36.1` in `.visual-qa/reviews/d1-navigation-shell-2026-04-22-pass2/`.
+**Start date:** 2026-02-26
+**Last active:** 2026-04-22
+
+## Locked Truth
+- Inkwell Core is closed and device-verified.
+- Daily-use capture, inbox, detail, settings, and system-health surfaces are the stable baseline.
+- The first post-core package is `Inkwell Daily Driver v1`.
+- Daily Driver v1 starts with notes, tasks, lists, ideas, search, detail/edit, and sync/account state.
+- Project pages and direct remote-control features are secondary follow-ons, not the main package.
+
+## Active Components
+- **Capture + Share Intent Flow** | Phase: Core baseline | State: Stable
+- **Inbox + Detail UI** | Phase: Core baseline | State: Stable
+- **Settings + System Health** | Phase: Core baseline | State: Stable
+- **Inkwell Daily Driver v1** | Phase: D2 defined | State: Awaiting approved D2 design output
+
+## Planning Gaps
+- Save approved D2 capture-design output in this repo.
+- Implement D2 Type-First Capture Refinement after design proof is available.
+
+## Open Decisions
+- Which exact approved design artifact set should serve as D2 visual input before implementation?
+
+## Recent Milestones
+- 2026-04-24 - Misplaced Dashboard handoff localized into Inkwell docs and D2 Type-First Capture Refinement defined.
+- 2026-04-22 - D1 visual proof captured on `Medium_Phone_API_36.1` in `.visual-qa/reviews/d1-navigation-shell-2026-04-22-pass2/`.
+- 2026-04-22 - D1 navigation-shell code implemented and verified by test, lint, release build, and debug install; visual proof was initially blocked until the emulator was unlocked.
+- 2026-04-22 - Daily Driver v1 PRD accepted and D1 navigation-shell slice chosen.
+- 2026-03-28 - Tyler device verification passed and Inkwell Core was closed.
+- 2026-03-28 - Pinned-first inbox sorting landed.
+
+## Dependencies
+- **Upstream:** Nexus capture/list/inbox APIs, Android app code, and business-rules docs must agree.
+- **Downstream:** secondary project pages, feedback capture, remote session controls, notifications, and widgets wait behind the Daily Driver v1 definition.
+- **Global:** Device proof matters more than unit-test confidence for daily-driver mobile claims.
+
+## Reference
+- `tasks/prd-inkwell-daily-driver-v1.md` - first post-core package PRD.
+- `documentation/16-daily-driver-v1-scope.md` - scope boundary between main app goals and secondary Nexus goals.
+- `documentation/17-daily-driver-v1-slice-1-navigation-shell.md` - first implementation slice packet.
+- `documentation/18-inkwell-readiness-audit-and-handoff.md`, `documentation/19-daily-driver-v1-design-prep.md`, and `documentation/20-daily-driver-v1-slice-2-type-first-capture-refinement.md` - localized handoff, design prep, and D2 packet.
+- `documentation/02-capture-flow.md` - capture contract and flow.
+- `documentation/03-sync-strategy.md` - sync behavior.
+- `documentation/06-ui-architecture.md` - screen and navigation model.
+- `documentation/08-business-rules.md` - live product rules.
+
+## AI Watchouts
+- Do not confuse "core closed" with "project done forever."
+- Do not start with project pages; Daily Driver v1 starts with the main notes/tasks/lists app.
+- Keep remote execution out of Inkwell until prompt submission, output visibility, guardrails, and action logging exist.
+- Use fresh device evidence before reopening stable core behavior.
+
+<!-- QUICK-RESUME-UPDATED: 2026-03-28 I17-phase-closed -->
+## Historical Quick Resume
 **Last Active:** 2026-03-28
 **Current Phase:** Inkwell Core — **CLOSED** (I6.4–I15, verified 2026-03-28)
 **Status:** Core phase complete. Tyler device verification passed. No open work items in core scope.

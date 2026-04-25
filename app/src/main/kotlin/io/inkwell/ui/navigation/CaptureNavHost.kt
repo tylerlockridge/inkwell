@@ -3,12 +3,18 @@ package io.inkwell.ui.navigation
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Article
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.automirrored.outlined.Article
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -23,6 +29,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -32,6 +39,7 @@ import androidx.navigation.navDeepLink
 import io.inkwell.ui.capture.CaptureScreen
 import io.inkwell.ui.detail.NoteDetailScreen
 import io.inkwell.ui.inbox.InboxScreen
+import io.inkwell.ui.inbox.InboxTab
 import io.inkwell.ui.health.SystemHealthScreen
 import io.inkwell.ui.settings.SettingsScreen
 import io.inkwell.ui.theme.CaptureAnimations
@@ -48,8 +56,10 @@ fun CaptureNavHost(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    // Hide bottom bar on health screen only
-    val showBottomBar = currentDestination?.route != Screen.SYSTEM_HEALTH_ROUTE
+    val showBottomBar = currentDestination?.route !in setOf(
+        Screen.NOTE_DETAIL_ROUTE,
+        Screen.SYSTEM_HEALTH_ROUTE,
+    )
 
     Scaffold(
         modifier = Modifier.imePadding(),
@@ -65,13 +75,7 @@ fun CaptureNavHost(
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                                navController.navigateTopLevel(screen.route)
                             },
                             icon = {
                                 Icon(
@@ -113,13 +117,7 @@ fun CaptureNavHost(
                     sharedSourceUrl = sharedSourceUrl,
                     isFromShareIntent = isFromShareIntent,
                     onNavigateToSettings = {
-                        navController.navigate(Screen.Settings.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
+                        navController.navigateTopLevel(Screen.Settings.route)
                     },
                 )
             }
@@ -131,26 +129,57 @@ fun CaptureNavHost(
                 ),
             ) {
                 InboxScreen(
+                    initialTab = InboxTab.All,
                     onNoteClick = { uid ->
                         navController.navigate(Screen.noteDetailRoute(uid))
                     },
                     onNavigateToCapture = {
-                        navController.navigate(Screen.Capture.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
+                        navController.navigateTopLevel(Screen.Capture.route)
                     },
                     onNavigateToSettings = {
-                        navController.navigate(Screen.Settings.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
+                        navController.navigateTopLevel(Screen.Settings.route)
+                    },
+                )
+            }
+            composable(route = Screen.Tasks.route) {
+                InboxScreen(
+                    initialTab = InboxTab.Tasks,
+                    onNoteClick = { uid ->
+                        navController.navigate(Screen.noteDetailRoute(uid))
+                    },
+                    onNavigateToCapture = {
+                        navController.navigateTopLevel(Screen.Capture.route)
+                    },
+                    onNavigateToSettings = {
+                        navController.navigateTopLevel(Screen.Settings.route)
+                    },
+                )
+            }
+            composable(route = Screen.Notes.route) {
+                InboxScreen(
+                    initialTab = InboxTab.Notes,
+                    onNoteClick = { uid ->
+                        navController.navigate(Screen.noteDetailRoute(uid))
+                    },
+                    onNavigateToCapture = {
+                        navController.navigateTopLevel(Screen.Capture.route)
+                    },
+                    onNavigateToSettings = {
+                        navController.navigateTopLevel(Screen.Settings.route)
+                    },
+                )
+            }
+            composable(route = Screen.Lists.route) {
+                InboxScreen(
+                    initialTab = InboxTab.Lists,
+                    onNoteClick = { uid ->
+                        navController.navigate(Screen.noteDetailRoute(uid))
+                    },
+                    onNavigateToCapture = {
+                        navController.navigateTopLevel(Screen.Capture.route)
+                    },
+                    onNavigateToSettings = {
+                        navController.navigateTopLevel(Screen.Settings.route)
                     },
                 )
             }
@@ -191,5 +220,19 @@ fun CaptureNavHost(
 private fun Screen.icons(): Pair<ImageVector, ImageVector> = when (this) {
     Screen.Capture -> Icons.Filled.Edit to Icons.Outlined.Edit
     Screen.Inbox -> Icons.Filled.Inbox to Icons.Outlined.Inbox
+    Screen.Tasks -> Icons.Filled.TaskAlt to Icons.Outlined.TaskAlt
+    Screen.Notes -> Icons.AutoMirrored.Filled.Article to Icons.AutoMirrored.Outlined.Article
+    Screen.Lists -> Icons.AutoMirrored.Filled.FormatListBulleted to
+        Icons.AutoMirrored.Outlined.FormatListBulleted
     Screen.Settings -> Icons.Filled.Settings to Icons.Outlined.Settings
+}
+
+private fun NavHostController.navigateTopLevel(route: String) {
+    navigate(route) {
+        popUpTo(graph.findStartDestination().id) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
+    }
 }

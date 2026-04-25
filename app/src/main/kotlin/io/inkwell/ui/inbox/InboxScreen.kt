@@ -105,11 +105,18 @@ fun InboxScreen(
     onNoteClick: (String) -> Unit,
     onNavigateToCapture: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
+    initialTab: InboxTab = InboxTab.All,
     viewModel: InboxViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var pendingAction by remember { mutableStateOf<Pair<String, String>?>(null) }
+
+    LaunchedEffect(initialTab) {
+        if (state.selectedTab != initialTab) {
+            viewModel.onTabChange(initialTab)
+        }
+    }
 
     LaunchedEffect(state.snackbarMessage) {
         state.snackbarMessage?.let { message ->
@@ -168,7 +175,10 @@ fun InboxScreen(
                         )
                     } else {
                         Text(
-                            "Inbox",
+                            text = when (state.selectedTab) {
+                                InboxTab.All -> "Inbox"
+                                else -> state.selectedTab.name
+                            },
                             style = MaterialTheme.typography.headlineSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = (-0.5).sp,

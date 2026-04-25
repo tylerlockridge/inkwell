@@ -2,6 +2,7 @@ package io.inkwell
 
 import io.inkwell.ui.navigation.Screen
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -12,14 +13,15 @@ import org.junit.Test
 class BuildConfigTest {
 
     @Test
-    fun `bottom nav has exactly three items`() {
-        assertEquals(3, Screen.bottomNavItems.size)
+    fun `bottom nav has exactly five items`() {
+        assertEquals(5, Screen.bottomNavItems.size)
     }
 
     @Test
-    fun `bottom nav order is capture inbox settings`() {
+    fun `bottom nav order is daily workspace order`() {
         val routes = Screen.bottomNavItems.map { it.route }
-        assertEquals(listOf("capture", "inbox", "settings"), routes)
+        assertEquals(listOf("capture", "inbox", "tasks", "notes", "lists"), routes)
+        assertFalse(routes.contains(Screen.Settings.route))
     }
 
     @Test
@@ -37,6 +39,9 @@ class BuildConfigTest {
     fun `screen labels are user-facing`() {
         assertEquals("Capture", Screen.Capture.label)
         assertEquals("Inbox", Screen.Inbox.label)
+        assertEquals("Tasks", Screen.Tasks.label)
+        assertEquals("Notes", Screen.Notes.label)
+        assertEquals("Lists", Screen.Lists.label)
         assertEquals("Settings", Screen.Settings.label)
     }
 }

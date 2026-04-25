@@ -1,6 +1,6 @@
 # Feature: UI Architecture
 
-*Created: 2026-03-02 | Updated: 2026-03-28-I10 | Project: Inkwell*
+*Created: 2026-03-02 | Updated: 2026-04-22-D1-implemented | Project: Inkwell*
 
 ---
 
@@ -10,7 +10,6 @@
 Implements a single-activity MVVM + Repository architecture with Hilt dependency injection, Compose-based screens, StateFlow state management, and a NavHost router that handles both in-app navigation and deep link routing from notifications.
 
 **What it does NOT do:**
-- Does not use a traditional bottom navigation tab bar — routes are screen-level only
 - Does not support multiple back stacks (single back stack navigation)
 
 ---
@@ -44,15 +43,22 @@ Implements a single-activity MVVM + Repository architecture with Hilt dependency
 
 ## Navigation
 
-`CaptureNavHost` manages all routing. Routes:
+`CaptureNavHost` manages all routing. Current bottom navigation exposes Capture,
+Inbox, Tasks, Notes, and Lists. Settings remains reachable from screen actions, but
+it is no longer a bottom-nav item.
+
+Routes:
 
 | Route | Screen |
 |-------|--------|
 | `capture` | CaptureScreen |
-| `inbox` | InboxScreen |
-| `detail/:uid` | NoteDetailScreen |
+| `inbox` | InboxScreen with `InboxTab.All` |
+| `tasks` | InboxScreen with `InboxTab.Tasks` |
+| `notes` | InboxScreen with `InboxTab.Notes` |
+| `lists` | InboxScreen with `InboxTab.Lists` |
+| `note/{uid}` | NoteDetailScreen |
 | `settings` | SettingsScreen |
-| `health` | SystemHealthScreen |
+| `system-health` | SystemHealthScreen |
 
 Deep links from FCM notifications are parsed by `DeepLink` and injected into `CaptureNavHost` for routing.
 
@@ -106,6 +112,7 @@ Hilt is used throughout. `HiltTestRunner` is configured for instrumented tests s
 | MVVM + Repository + Hilt throughout | ✅ PASS | |
 | All screens as Compose functions | ✅ PASS | |
 | CaptureNavHost routing | ✅ PASS | |
+| Daily Driver v1 D1 bottom nav | ✅ PASS | Capture/Inbox/Tasks/Notes/Lists implemented; screenshots in `.visual-qa/reviews/d1-navigation-shell-2026-04-22-pass2/` |
 | Deep link routing from notifications | ✅ PASS | DeepLink parser |
 | collectAsStateWithLifecycle() on all screens | ✅ PASS | Fixed 2026-02-28 |
 | MainViewModel extracted | ✅ PASS | Fixed 2026-02-28 |
