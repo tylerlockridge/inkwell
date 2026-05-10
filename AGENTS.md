@@ -14,12 +14,15 @@ source of truth. This file is the local reinforcement layer for this repo.
 These stay in handoff mode unless Tyler explicitly authorizes direct Codex research:
 - `look into options`
 - `research this`
+- `conduct research`
 - `compare tools`
 - `compare vendors`
 - `find the best fit`
 
 Phrases like `then we will look into options` are not permission for Codex to do the
 research itself.
+Codex sends a bounded Claude Code research slice instead of doing that research locally.
+Normal chat phrasing like `I want you to research X`, `research X, Y, Z`, or `can you research X` is still a handoff request, not permission for Codex to do the research locally. Direct Codex research requires explicit wording such as `Codex, research this yourself`, `conduct the research yourself`, or `do not send it to Claude Code`.
 
 ### Direct Execution Allowed Only When Explicit
 Codex may execute directly only when:
@@ -38,7 +41,7 @@ Codex may execute directly only when:
   explicit.
 
 ### Explanation Default
-- Default to ELI5 explanations: plain language, concrete wording, minimal jargon.
+- Default to ELI5 explanations: start with the bottom line, use plain language, include a short plain-language explanation of reasoning every time without exposing hidden chain-of-thought, and keep simple answers concise.
 
 ### Local Machine Baseline
 - For Tyler's local machine, use a convenience-first full-access baseline unless he
